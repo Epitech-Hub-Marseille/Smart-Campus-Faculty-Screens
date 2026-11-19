@@ -98,6 +98,15 @@ fingerprint with the one on http://localhost:3300. `DEVICE_NAME` names it. This 
 - **Media library** page: upload, rename, move, replace and delete the images and videos tiles use; picked from there for logos and tiles.
 - With no scene to show, a screen shows the information board: a wall screen is never left blank.
 
+### Themes
+
+The server can give a screen a visual theme (`theme.set`, part of the desired state): colours, light or dark mode, a font family from a fixed list, a
+text scale and a corner radius as JSON tokens, plus optional CSS. The page sets them as CSS variables on the root and adds the CSS in one `<style>`
+element (`apps/display/src/lib/useTheme.ts`). The agent keeps the theme with its state and checks it again when it reads it back from disk, so a
+hand-edited file cannot put unchecked CSS on a wall; the CSS rules (no `url()`, `@import`, `@font-face`, escapes; 12,000 characters) are the
+protocol package's. **While an emergency or the end-of-alert notice is showing, the page removes the theme completely**: an alarm always looks the same.
+A theme that leaves a colour out keeps the page's own; a dark theme starts from dark colours.
+
 ### What a tile may load
 
 The page loads nothing from the internet by itself. A tile that an administrator adds is the exception, and the agent's content

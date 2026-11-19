@@ -85,6 +85,7 @@ docker compose -f docker-compose.campus.yml up -d --build   # the whole campus o
 - The page draws what it is given and holds no logic that belongs to the agent. Pure logic (schedules, rotation, events) lives in `packages/local-contract` and is tested there.
 - Sizes are in `rem`, with `1rem = 16px` at 1920x1080 and scaling with the screen. The references are drawn at 1080p; keep that scale.
 - Fonts are bundled (no network at runtime). The page loads nothing from the internet: the weather is fetched by the agent.
+- A theme (`theme.set`) is applied by `useTheme` as CSS variables and one `<style>` element, and is removed while an emergency or its end notice shows. Colours the page draws must come from the variables (`--page`, `--card`, `--ink`, `--muted`, `--line`, `--accent`, `--accent-ink`, `--ok`, `--warn`, `--danger`), never a fixed white or black, or a dark theme leaves unreadable parts.
 - A web tile is framed in a sandbox with no referrer. Media tiles are muted unless their settings say otherwise (the kiosk allows autoplay; the server allows one audible tile per scene). A kind the page does not know draws nothing, never an error: the server may be newer than the screen. `KNOWN_TILE_KINDS` and `SCENE_LAYOUTS` in `local-contract` are copies of the server's definitions, and a test in the agent fails when they drift.
 - A new tile kind: add it to the server's `TILE_KINDS`, re-sync the protocol, add it to `KNOWN_TILE_KINDS`, draw it in `components/Scene.tsx`, and test it.
 - The cursor is hidden and nothing on the page is interactive.
