@@ -5,7 +5,7 @@ import { visibleEndNotice } from "@smartcampus/faculty-local";
 import type { AssetCache } from "./assets/cache.js";
 import type { LinkEvent, MessageSink } from "./link/deviceLink.js";
 import { errorMessage, log } from "./log.js";
-import { activateCarousel, applyCommand, applyDesired, assetsOfScenes, neededAssets, prune, toViewState, type AgentState } from "./state.js";
+import { activateCarousel, applyCommand, applyDesired, assetsOfScenes, fontsOfTheme, neededAssets, prune, toViewState, type AgentState } from "./state.js";
 
 /** Recent command ids kept so a replayed command is acknowledged again but never run twice. */
 const REMEMBERED_IDS = 200;
@@ -131,6 +131,7 @@ export class Controller {
     if (message.type === "session.ready") {
       this.change(applyDesired(this.state, message.payload.desired, message.payload.serverTime, this.clock()));
       void this.ensureLogo();
+      void this.ensureThemeFonts();
       this.report();
       return;
     }
@@ -150,6 +151,10 @@ export class Controller {
       case "audio.play":
         void this.playAudio(message);
         return;
+      case "theme.set":
+        this.change(applyCommand(this.state, message, this.clock()));
+        void this.ensureThemeFonts();
+        break;
       case "faculty.config.set":
         this.change(applyCommand(this.state, message, this.clock()));
         void this.ensureLogo();
@@ -223,6 +228,21 @@ export class Controller {
     } catch (err) {
       // A logo that cannot be fetched is not worth refusing the configuration for: the header just has none.
       log("warn", "logo not available", { error: errorMessage(err) });
+    }
+  }
+
+  /**
+   * Downloads the font files of the theme. The page gets the theme at once and each font as soon as its file is verified,
+   * so a slow download never delays the colours. A font that cannot be fetched is skipped: the page keeps its own.
+   */
+  private async ensureThemeFonts(): Promise<void> {
+    for (const ref of fontsOfTheme(this.state.theme)) {
+      try {
+        await this.deps.assets.ensure(ref, new AbortController().signal);
+        this.emit();
+      } catch (err) {
+        log("warn", "theme font not available", { error: errorMessage(err) });
+      }
     }
   }
 

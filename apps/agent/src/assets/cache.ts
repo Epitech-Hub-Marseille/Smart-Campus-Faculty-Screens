@@ -15,6 +15,11 @@ const EXTENSIONS: Record<string, string> = {
   "audio/ogg": "ogg",
   "audio/webm": "weba",
   "audio/mp4": "m4a",
+  // Theme fonts.
+  "font/woff2": "woff2",
+  "font/woff": "woff",
+  "font/otf": "otf",
+  "font/ttf": "ttf",
 };
 
 const ID = /^[A-Za-z0-9_-]{1,64}$/;

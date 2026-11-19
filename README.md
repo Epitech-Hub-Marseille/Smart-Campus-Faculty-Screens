@@ -107,6 +107,11 @@ hand-edited file cannot put unchecked CSS on a wall; the CSS rules (no `url()`, 
 protocol package's. **While an emergency or the end-of-alert notice is showing, the page removes the theme completely**: an alarm always looks the same.
 A theme that leaves a colour out keeps the page's own; a dark theme starts from dark colours.
 
+A theme may also name font files for three slots (`body`, `heading`, `mono`). They are assets like any other: the agent downloads each with a signed
+request, checks its SHA-256 and gives the page its local URL once verified (a font that fails is skipped and the page keeps its own). The page
+registers them as the families `sc-body`, `sc-heading` and `sc-mono` (the rules come from the page, never from the theme's CSS) and sets
+`--font` to the body one, plus `--font-body`, `--font-heading` and `--font-mono` for the theme CSS, only for slots that have a file.
+
 ### What a tile may load
 
 The page loads nothing from the internet by itself. A tile that an administrator adds is the exception, and the agent's content

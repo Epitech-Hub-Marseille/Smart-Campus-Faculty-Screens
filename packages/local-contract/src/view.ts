@@ -115,6 +115,8 @@ export interface ThemeView {
     typography: { fontFamily?: "system" | "sans" | "serif" | "mono" | "condensed"; scale?: number };
     shape: { radius?: number };
   };
+  /** Local URLs of the verified font files, by slot. A slot without a file is absent. */
+  fonts?: Partial<Record<"body" | "heading" | "mono", string>>;
   css?: string;
 }
 

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { themeVariables, type ThemeView } from "@smartcampus/faculty-local";
+import { themeFontFaces, themeVariables, type ThemeView } from "@smartcampus/faculty-local";
 
 const STYLE_ID = "theme-css";
 
@@ -18,10 +18,12 @@ export function useTheme(theme: ThemeView | null, suppressed: boolean) {
         root.style.setProperty(name, value);
         applied.push(name);
       }
-      if (active.css) {
+      // The font files first, so the theme's own CSS can use the families they register.
+      const css = [themeFontFaces(active), active.css].filter(Boolean).join("\n");
+      if (css) {
         const style = document.createElement("style");
         style.id = STYLE_ID;
-        style.textContent = active.css;
+        style.textContent = css;
         document.head.appendChild(style);
       }
     }
