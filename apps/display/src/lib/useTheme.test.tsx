@@ -42,6 +42,17 @@ describe("useTheme", () => {
     expect(style()).not.toBeNull();
   });
 
+  it("during an emergency, keeps only the font files the theme lets an alert use, never its colours or CSS", () => {
+    const dressed = theme({ fonts: { heading: "/media/H.ttf" }, emergency: { fonts: true, frame: "bar", colors: {} } });
+    renderHook(() => useTheme(dressed, true));
+    expect(root().getPropertyValue("--accent")).toBe("");
+    expect(style()?.textContent).toContain('font-family:"sc-heading"');
+    expect(style()?.textContent).not.toContain(".card");
+    cleanup();
+    renderHook(() => useTheme(theme({ fonts: { heading: "/media/H.ttf" }, emergency: { fonts: false, frame: "stripes", colors: {} } }), true));
+    expect(style()).toBeNull();
+  });
+
   it("replaces a theme by the next one without leaving the old one behind, and cleans up when it ends", () => {
     const { rerender, unmount } = renderHook(({ t }) => useTheme(t, false), { initialProps: { t: theme() } });
     rerender({ t: theme({ tokens: { colors: { danger: "#aa0000" }, typography: {}, shape: {} }, css: ".x { color: red }" }) });

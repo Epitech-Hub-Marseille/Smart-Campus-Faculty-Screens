@@ -531,240 +531,210 @@ td.room-for {
   height: 1.3rem;
 }
 
-/* ---- end of emergency ---- */
+/* ---- emergency and end of emergency ---- */
+/*
+ * A bulletin in the style of a terminal: bold monospace, white double frame, yellow on the colour of the kind of alert. Each
+ * kind has a dark background that white and yellow text read on. A theme may replace the background (dark only, checked by the
+ * agent), the fonts, the corners and the frame band through the --em-* variables; nothing else changes.
+ */
+.emergency,
 .end-notice {
+  --yellow: #ffff55;
+  --kind: #a80000;
+  --bg: var(--em-solid, var(--kind));
   display: flex;
   height: 100%;
+  padding: 2.5rem 4rem;
+  background: var(--bg);
+  color: #fff;
+  font-family: var(--em-font-body, ui-monospace, "DejaVu Sans Mono", "Liberation Mono", "Courier New", monospace);
+  font-weight: 700;
+}
+
+.emergency[data-kind="biohazard"] { --kind: #1f5f1f; }
+.emergency[data-kind="nuclear"] { --kind: #5a4a00; }
+.emergency[data-kind="bomb"] { --kind: #8a0030; }
+.emergency[data-kind="seismic"] { --kind: #8a3a00; }
+.emergency[data-kind="power"] { --kind: #0a3d8a; }
+.end-notice { --kind: #0a5a1f; }
+
+/* The double white line: an outer border and, inside a band of the background colour, a second one. */
+.alert-frame {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
   flex-direction: column;
+  gap: 1.4rem;
+  padding: 1.8rem 2.2rem 1.2rem;
+  border: 0.3rem solid #fff;
+  border-radius: var(--em-radius, 0);
+  box-shadow: inset 0 0 0 0.5rem var(--bg), inset 0 0 0 0.7rem #fff;
+  overflow: hidden;
+}
+
+.alert-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 0.5rem 1.2rem;
+  background: #fff;
+  color: var(--bg);
+  font-size: 1.8rem;
+  letter-spacing: 0.06em;
+  border-radius: var(--em-radius, 0);
+}
+
+.alert-title {
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 2rem;
-  padding: 0 10rem;
-  text-align: center;
-  background: #06100b;
-  color: #f2f5f3;
+  gap: 2.4rem;
 }
 
-.end-notice svg {
-  width: 11rem;
-  height: 11rem;
-  color: #00a86b;
+.alert-title svg {
+  width: 7.5rem;
+  height: 7.5rem;
+  color: #000;
+  fill: var(--yellow);
+  stroke-width: 1.6;
 }
 
-.end-notice h1 {
-  font-family: "Barlow Condensed", "Inter Variable", sans-serif;
-  font-size: 9rem;
-  font-weight: 700;
+.alert-title h1 {
+  font-family: var(--em-font-heading, inherit);
+  font-size: 8.2rem;
   line-height: 1;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #00a86b;
+  color: var(--yellow);
 }
 
-.end-notice p {
-  max-width: 90rem;
-  font-size: 3rem;
-  line-height: 1.3;
-}
-
-.end-zone {
-  font-size: 1.8rem;
-  letter-spacing: 0.15em;
+.alert-detail {
+  text-align: center;
+  font-size: 2.9rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #9db3a8;
 }
 
-/* ---- emergency ---- */
-.emergency {
-  /* Hazard stripes in the colour of the alert, warmed towards red like a real sign. */
-  --dark: color-mix(in srgb, var(--accent) 36%, #4a0a05);
-  --stripe: color-mix(in srgb, var(--accent) 82%, #6a1208);
-  --glow: color-mix(in srgb, var(--accent) 55%, transparent);
-  display: flex;
-  height: 100%;
-  flex-direction: column;
-  padding: 2.5rem 4rem;
-  background: radial-gradient(ellipse at 50% 40%, color-mix(in srgb, var(--accent) 10%, #070403), #050303 70%);
-  color: #fff;
-  font-family: "Inter Variable", Inter, system-ui, sans-serif;
+.alert-call {
+  align-self: center;
+  padding: 0.6rem 2.4rem;
+  background: #fff;
+  color: var(--bg);
+  font-size: 3.6rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: var(--em-radius, 0);
 }
 
-.stripes {
-  height: 5.5rem;
-  flex: none;
-  border-radius: 0.9rem;
-  background: repeating-linear-gradient(45deg, var(--dark) 0 2.4rem, var(--stripe) 2.4rem 4.8rem);
-  box-shadow: 0 0 2.4rem var(--glow);
-}
-
-.emergency-body {
+.steps {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 1.6rem;
-  padding: 0 4rem;
-}
-
-.emergency-top {
-  display: flex;
-  align-items: center;
-  gap: 1.8rem;
-  font-family: "Barlow Condensed", "Inter Variable", sans-serif;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 1.2rem 0 0;
+  border-top: 0.2rem dashed #fff;
+  background: var(--em-card, transparent);
+  list-style: none;
+  font-size: 2.5rem;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  overflow: hidden;
 }
 
-.alert-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.8rem;
-  padding: 0.55rem 1.4rem;
-  border-radius: 0.4rem;
-  background: #b01e12;
-  font-size: 1.7rem;
-  font-weight: 700;
+.steps li {
+  padding: 0.2rem 1.2rem;
+  border-radius: var(--em-radius, 0);
 }
 
-.alert-pill i {
-  width: 0.8rem;
-  height: 0.8rem;
-  border-radius: 50%;
+.steps li span {
+  color: var(--yellow);
+}
+
+/* The current step is the one to do now: reversed. The highlight cycles through the list. */
+.steps li.current {
   background: #fff;
-  animation: blink 1.1s steps(2, jump-none) infinite;
+  color: var(--bg);
 }
 
-@keyframes blink {
-  50% {
-    opacity: 0.2;
-  }
+.steps li.current span {
+  color: inherit;
 }
 
-.alert-kind {
-  font-size: 1.9rem;
-  font-weight: 600;
-}
-
-.alert-place {
+.alert-foot {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 1.1rem;
-  margin-left: auto;
-  font-family: "Inter Variable", sans-serif;
-  font-size: 1.4rem;
-  font-weight: 500;
-  letter-spacing: 0.02em;
+  padding: 0.7rem 1.6rem;
+  background: var(--yellow);
+  color: #000;
+  font-size: 3rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: var(--em-radius, 0);
+}
+
+.stripes {
+  flex: none;
+  height: 5rem;
+  margin: 0 -1.2rem;
+  background: repeating-linear-gradient(45deg, var(--yellow) 0 2.4rem, #000 2.4rem 4.8rem);
+}
+
+/* A theme's plain frame: a solid yellow band instead of the hazard stripes. */
+.frame-bar .stripes {
+  height: 2.2rem;
+  background: var(--yellow);
+}
+
+/*
+ * An alert is a window over the screen, not a takeover: the normal screen stays behind it, blurred and dimmed. The bulletin is
+ * drawn at full size and scaled down, so its layout is the one that is tested; the extra height gives the steps more room.
+ */
+.alert-backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  filter: blur(0.5rem) brightness(0.8);
+  pointer-events: none;
+}
+
+.alert-overlay {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.alert-overlay .emergency {
+  /* A transform does not shrink the layout box, so centre it by its middle instead of with the grid. */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100vw;
+  height: 128vh;
+  transform: translate(-50%, -50%) scale(0.68);
+  box-shadow: 2rem 2rem 0 rgba(0, 0, 0, 0.45);
+}
+
+/* The end of the alert uses the same bulletin: it needs no stripes and its message may be long. */
+.end-notice .alert-frame {
+  padding-bottom: 2.2rem;
+  justify-content: center;
+}
+
+.end-notice .alert-detail {
+  font-size: 3.4rem;
+  line-height: 1.3;
   text-transform: none;
 }
 
-.bar {
-  width: 1px;
-  height: 1.8rem;
-  background: #6d6a68;
-}
-
-.emergency-main {
-  display: flex;
-  align-items: center;
-  gap: 3.2rem;
-}
-
-.emblem {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 17rem;
-  height: 17rem;
-  border: 0.45rem solid var(--accent);
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--accent) 12%, #0a0504);
-  box-shadow: 0 0 2.6rem var(--glow);
-}
-
-.emblem svg {
-  width: 8.5rem;
-  height: 8.5rem;
-  stroke-width: 1.7;
-}
-
-.emergency h1 {
-  font-family: "Barlow Condensed", "Inter Variable", sans-serif;
-  font-size: 13rem;
-  font-weight: 700;
-  line-height: 0.9;
-  letter-spacing: 0.01em;
-  text-transform: uppercase;
-  text-shadow: 0 0 2.4rem var(--glow);
-}
-
-.emergency-main p {
-  max-width: 78rem;
-  margin-top: 1rem;
-  font-size: 2.35rem;
-  line-height: 1.3;
-  color: #f3e4dc;
-}
-
-.actions {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 2rem;
-}
-
-.action {
-  display: flex;
-  align-items: center;
-  gap: 1.6rem;
-  min-height: 11.8rem;
-  padding: 1.6rem 1.9rem;
-  border: 0.1rem solid color-mix(in srgb, var(--accent) 45%, #000);
-  border-radius: 1.1rem;
-  background: rgba(0, 0, 0, 0.35);
-}
-
-.action-icon svg {
-  width: 3.6rem;
-  height: 3.6rem;
-  color: var(--accent);
-}
-
-.action strong {
-  display: block;
-  font-family: "Barlow Condensed", "Inter Variable", sans-serif;
-  font-size: 2.3rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.action span {
-  font-size: 1.55rem;
-  color: #eadfd9;
-}
-
-.emergency-foot {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 4rem;
-}
-
-.emergency-foot p {
-  max-width: 70rem;
-  font-size: 1.5rem;
-  line-height: 1.35;
-}
-
-.services {
-  font-family: "Barlow Condensed", "Inter Variable", sans-serif;
-  font-size: 2rem !important;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.services strong {
-  display: block;
+.end-notice .alert-title svg {
+  fill: none;
+  color: var(--yellow);
 }
 
 /* ---- scenes and tiles ---- */

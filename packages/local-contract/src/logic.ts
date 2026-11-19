@@ -195,6 +195,33 @@ export function themeFontFaces(theme: ThemeView): string {
     .join("\n");
 }
 
+/** The alert's own typeface: bold monospace, like a terminal. A theme's font goes in front of it. */
+const ALERT_FONT = `ui-monospace, "DejaVu Sans Mono", "Liberation Mono", "Courier New", monospace`;
+
+/**
+ * What a theme changes on an alert, as CSS variables for the alert's own element. Only the closed set of the protocol: the
+ * wording and the white and yellow text are never touched, the colour of the kind of alert is only replaced by a dark background, and a background that white text could not be read on never
+ * gets here (the agent refuses it). A theme with nothing for alerts gives an empty object: the default alert.
+ */
+export function emergencyVariables(theme: ThemeView | null): Record<string, string> {
+  const settings = theme?.emergency;
+  if (!settings) return {};
+  const entries: [string, string | undefined][] = [
+    ["--em-radius", settings.radius === undefined ? undefined : `${settings.radius / 16}rem`],
+    ["--em-card", settings.colors.card],
+    ["--em-solid", settings.colors.background],
+    ["--em-font-body", settings.fonts && theme.fonts?.body ? `"sc-body", ${ALERT_FONT}` : undefined],
+    ["--em-font-heading", settings.fonts && theme.fonts?.heading ? `"sc-heading", ${ALERT_FONT}` : undefined],
+  ];
+  return Object.fromEntries(entries.filter((e): e is [string, string] => e[1] !== undefined));
+}
+
+/** The font files an alert may use: the theme's, only when the theme says so. */
+export function emergencyFontFaces(theme: ThemeView | null): string {
+  if (!theme?.emergency?.fonts) return "";
+  return themeFontFaces(theme);
+}
+
 /** What a dark theme starts from when it does not give a colour. */
 const DARK_BASE = { background: "#0e0f10", surface: "#1a1d1f", text: "#e8f1ec", muted: "#8a9a92", border: "#2a2e30" } as const;
 

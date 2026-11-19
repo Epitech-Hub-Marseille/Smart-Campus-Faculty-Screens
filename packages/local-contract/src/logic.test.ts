@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FONT_STACKS, themeFontFaces, themeVariables, activeScenes, boardEvents, effectiveStaff, emergencyPresentation, FALLBACK_SCENES, rotation, roomRows, showsBoard, visibleAnnouncements, visibleEndNotice } from "./logic.js";
+import { FONT_STACKS, emergencyFontFaces, emergencyVariables, themeFontFaces, themeVariables, activeScenes, boardEvents, effectiveStaff, emergencyPresentation, FALLBACK_SCENES, rotation, roomRows, showsBoard, visibleAnnouncements, visibleEndNotice } from "./logic.js";
 import { KNOWN_TILE_KINDS, SCENE_LAYOUTS, type ReservationView, type SceneView, type StaffView, type ThemeView } from "./view.js";
 
 const noon = new Date(2026, 10, 6, 12, 0, 0).getTime();
@@ -161,5 +161,31 @@ describe("themeVariables", () => {
 
   it("knows every font family a theme may name", () => {
     expect(Object.keys(FONT_STACKS).sort()).toEqual(["condensed", "mono", "sans", "serif", "system"]);
+  });
+});
+
+describe("emergencyVariables", () => {
+  const base: ThemeView = { id: "t", name: "T", version: 1, tokens: { colors: {}, typography: {}, shape: {} }, fonts: { body: "/media/B.ttf", heading: "/media/H.ttf" } };
+
+  it("is empty without a theme or without alert settings, so the alert keeps its default look", () => {
+    expect(emergencyVariables(null)).toEqual({});
+    expect(emergencyVariables(base)).toEqual({});
+    expect(emergencyFontFaces(base)).toBe("");
+  });
+
+  it("maps only the closed set: corners, card and page colours, and the font families when the theme allows them", () => {
+    const vars = emergencyVariables({ ...base, emergency: { fonts: true, frame: "bar", radius: 8, colors: { background: "#001070", card: "#0a1a8a" } } });
+    expect(vars["--em-radius"]).toBe("0.5rem");
+    expect(vars["--em-card"]).toBe("#0a1a8a");
+    expect(vars["--em-solid"]).toBe("#001070");
+    expect(vars["--em-font-body"]).toContain('"sc-body"');
+    expect(vars["--em-font-heading"]).toContain('"sc-heading"');
+    expect(Object.keys(vars).sort()).toEqual(["--em-card", "--em-font-body", "--em-font-heading", "--em-radius", "--em-solid"]);
+    expect(emergencyFontFaces({ ...base, emergency: { fonts: true, frame: "stripes", colors: {} } })).toContain("sc-heading");
+  });
+
+  it("uses no font when the theme does not say so, or the slot has no file", () => {
+    expect(emergencyVariables({ ...base, emergency: { fonts: false, frame: "stripes", colors: {}, radius: 4 } })["--em-font-body"]).toBeUndefined();
+    expect(emergencyVariables({ ...base, fonts: {}, emergency: { fonts: true, frame: "stripes", colors: {}, radius: 4 } })["--em-font-heading"]).toBeUndefined();
   });
 });

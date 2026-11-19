@@ -115,6 +115,13 @@ export interface ThemeView {
     typography: { fontFamily?: "system" | "sans" | "serif" | "mono" | "condensed"; scale?: number };
     shape: { radius?: number };
   };
+  /** How an alert is dressed, as the agent checked it (see the protocol's `emergencyTheme`). Absent: the default alert. */
+  emergency?: {
+    fonts: boolean;
+    frame: "stripes" | "bar";
+    radius?: number;
+    colors: { background?: string; card?: string };
+  };
   /** Local URLs of the verified font files, by slot. A slot without a file is absent. */
   fonts?: Partial<Record<"body" | "heading" | "mono", string>>;
   css?: string;

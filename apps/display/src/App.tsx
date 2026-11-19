@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import { showsBoard, visibleEndNotice, type LiveMessage } from "@smartcampus/faculty-local";
 import { EmergencyScreen } from "./components/Emergency";
 import { EndNotice } from "./components/EndNotice";
+import { FallbackBoundary } from "./components/FallbackBoundary";
 import { Enrolling } from "./components/Enrolling";
 import { Header } from "./components/Header";
 import { Scene } from "./components/Scene";
@@ -30,7 +31,7 @@ export function App() {
   const now = useNow(state.clockOffsetMs);
   const page = useRotation(state.config, state.scenes, now);
   const alarm = useRef(createAlarm());
-  // An alarm always looks the same: the theme is off while an emergency or its end notice is on screen.
+  // While an emergency or its end notice is on screen the theme is off, except what it says about alerts (fonts, frame, corners, dark backgrounds).
   useTheme(state.theme, Boolean(state.emergency) || visibleEndNotice(state.endNotice, now) !== null);
 
   // The alarm follows the emergency: it starts when one appears and stops when it ends.
@@ -43,16 +44,21 @@ export function App() {
     return () => alarm.current.stop();
   }, [alarmKey]);
 
-  if (emergency) return <EmergencyScreen emergency={emergency} config={state.config} now={now} />;
-
   if (state.phase === "enrolling" && state.enrollment) return <Enrolling enrollment={state.enrollment} />;
 
   const notice = visibleEndNotice(state.endNotice, now);
-  if (notice) return <EndNotice notice={notice} config={state.config} />;
+  if (notice) {
+    const plain = <EndNotice notice={notice} config={state.config} />;
+    return (
+      <FallbackBoundary key={notice.shownAt} fallback={plain}>
+        <EndNotice notice={notice} config={state.config} theme={state.theme} />
+      </FallbackBoundary>
+    );
+  }
 
   // The header (logo, clock, weather) goes with the information board; a full-bleed picture or stream has none.
   const board = showsBoard(page.scene);
-  return (
+  const screen = (
     <div className={`screen ${board ? "page-board" : "page-media"}`}>
       {board && <Header config={state.config} logoUrl={state.logoUrl} weather={state.weather} now={now} />}
       <Scene scene={page.scene} state={state} now={now} />
@@ -63,4 +69,22 @@ export function App() {
       )}
     </div>
   );
+
+  // An alert opens over the normal screen, which stays visible but blurred behind it, instead of replacing it.
+  if (emergency) {
+    const plain = <EmergencyScreen emergency={emergency} config={state.config} now={now} />;
+    return (
+      <>
+        <div className="alert-backdrop" aria-hidden inert>
+          {screen}
+        </div>
+        <div className="alert-overlay">
+          <FallbackBoundary key={emergency.emergencyId} fallback={plain}>
+            <EmergencyScreen emergency={emergency} config={state.config} now={now} theme={state.theme} />
+          </FallbackBoundary>
+        </div>
+      </>
+    );
+  }
+  return screen;
 }
