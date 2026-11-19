@@ -1,0 +1,45 @@
+# The whole campus on one machine, for development and demos: the central server stack (server, console, MongoDB, mails)
+# from the SmartCampus-CentralServer checkout next to this repository, plus a Faculty screen built from this one.
+#
+#   docker compose -f docker-compose.campus.yml up -d --build
+#   # with the local voice engine on an NVIDIA GPU:
+#   docker compose -f docker-compose.campus.yml -f ../SmartCampus-CentralServer/docker-compose.tts.yml up -d --build
+#
+# Console http://localhost:5173 (admin@smartcampus.local / changeme123), mails http://localhost:8025, API and device gateway
+# :3000, the screen's page http://localhost:3300. The screen appears under Devices as a connection request with the
+# fingerprint of its key: compare it with the one on the screen (http://localhost:3300), then approve it.
+name: smartcampus-dev
+
+include:
+  # The server stack as it is, with its own paths. It is the project the server's own dev compose names, so a stack that is
+  # already running is adopted, not started twice.
+  - path: ../SmartCampus-CentralServer/docker-compose.dev.yml
+
+services:
+  faculty-screen:
+    build: .
+    restart: unless-stopped
+    environment:
+      # Inside the compose network the server is just `server`.
+      SERVER_URL: http://server:3000
+      # The server's PUBLIC key, read from the folder the dev server writes it to. Until the server has made it the agent
+      # stops and is restarted, so the order in which things start does not matter.
+      SERVER_PUBLIC_KEY_FILE: /run/campus/server-key.pub
+      DEVICE_NAME: ${DEVICE_NAME:-Faculty screen}
+      # The same port inside and outside: the agent only lets the page of http://localhost:<this port> open its socket.
+      DISPLAY_PORT: "3300"
+    ports:
+      - "127.0.0.1:3300:3300"
+    volumes:
+      - ../SmartCampus-CentralServer/secrets:/run/campus:ro
+      - faculty-screen-data:/data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+
+volumes:
+  faculty-screen-data:

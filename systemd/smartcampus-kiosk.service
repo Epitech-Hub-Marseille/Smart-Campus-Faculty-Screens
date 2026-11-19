@@ -1,0 +1,15 @@
+[Unit]
+Description=Smart Campus Faculty screen (Chromium kiosk)
+After=graphical-session.target
+Wants=graphical-session.target
+
+[Service]
+Type=simple
+Environment=KIOSK_URL=http://localhost:3000
+Environment=KIOSK_WAIT_TIMEOUT_SECONDS=120
+ExecStart=/usr/local/bin/smartcampus-kiosk
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

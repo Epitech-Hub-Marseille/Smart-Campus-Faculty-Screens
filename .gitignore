@@ -1,0 +1,10 @@
+node_modules/
+dist/
+data/
+.env
+*.log
+.vite/
+coverage/
+# The inspiration material keeps its own history and dependencies; it is reference, not part of this project.
+docs/inspiration/EpiInfo/*/node_modules/
+docs/inspiration/EpiInfo/*/dist/

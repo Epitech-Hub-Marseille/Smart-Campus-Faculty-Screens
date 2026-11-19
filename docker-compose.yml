@@ -1,0 +1,37 @@
+# One Faculty screen: the agent and the page it serves. Chromium runs on the machine itself (see scripts/start-kiosk.sh).
+#   cp .env.example .env   # fill in SERVER_URL and SERVER_PUBLIC_KEY
+#   docker compose up -d --build
+name: smartcampus-faculty-screen
+
+services:
+  agent:
+    build: .
+    restart: unless-stopped
+    environment:
+      # The server key is provisioned on the device (console: Devices, Provision a device). It is never fetched by the agent.
+      SERVER_URL: ${SERVER_URL:?Set SERVER_URL in .env}
+      SERVER_PUBLIC_KEY: ${SERVER_PUBLIC_KEY:?Set SERVER_PUBLIC_KEY in .env}
+      SERVER_TLS_FINGERPRINT: ${SERVER_TLS_FINGERPRINT:-}
+      DEVICE_NAME: ${DEVICE_NAME:-}
+      LOG_LEVEL: ${LOG_LEVEL:-}
+      # The same port inside and outside: the agent only lets the page of http://localhost:<this port> open its socket.
+      DISPLAY_PORT: "${DISPLAY_PORT:-3000}"
+      DISPLAY_ALLOWED_ORIGINS: ${DISPLAY_ALLOWED_ORIGINS:-}
+    ports:
+      # Only this machine can open the page: the container listens on all its interfaces, the host only on loopback.
+      - "127.0.0.1:${DISPLAY_PORT:-3000}:${DISPLAY_PORT:-3000}"
+    volumes:
+      - faculty-data:/data
+    # So that `host.docker.internal` reaches a server running on this machine on Linux too (Docker Desktop has it already).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+
+volumes:
+  faculty-data:

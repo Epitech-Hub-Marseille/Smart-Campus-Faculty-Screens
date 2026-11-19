@@ -1,0 +1,22 @@
+{
+  "name": "smartcampus-facultyscreens",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Smart Campus Faculty screens: an edge agent that holds the device identity and the server link, and a kiosk page that shows what the agent hands it",
+  "packageManager": "pnpm@10.12.1",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "typecheck": "pnpm --filter @smartcampus/faculty-local build && pnpm -r typecheck",
+    "test": "pnpm --filter @smartcampus/faculty-local build && pnpm -r test",
+    "build": "pnpm -r build",
+    "dev:agent": "pnpm --filter @smartcampus/faculty-agent dev",
+    "dev:display": "pnpm --filter @smartcampus/faculty-display dev",
+    "sync:protocol": "scripts/sync-protocol.sh"
+  },
+  "pnpm": {
+    "overrides": {
+      "@smartcampus/protocol": "file:vendor/smartcampus-protocol-0.1.0.tgz"
+    }
+  }
+}
