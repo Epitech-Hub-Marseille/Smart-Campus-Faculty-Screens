@@ -14,12 +14,13 @@
   --ok: #1f9d55;
   --warn: #c77700;
   --danger: #d1332b;
-  font-family: "Inter Variable", Inter, system-ui, sans-serif;
+  /* A theme may replace these (see lib/useTheme.ts): colours, the font, the corner radius and a text scale. */
+  font-family: var(--font, "Inter Variable", Inter, system-ui, sans-serif);
   color: var(--ink);
 }
 
 html {
-  font-size: calc(min(100vw / 120, 100vh / 67.5));
+  font-size: calc(min(100vw / 120, 100vh / 67.5) * var(--scale, 1));
 }
 
 * {
@@ -68,7 +69,7 @@ svg {
   height: 6.9rem;
   padding: 0 5rem;
   border-bottom: 1px solid var(--line);
-  background: #fff;
+  background: var(--page);
 }
 
 .header-brand,
@@ -161,7 +162,7 @@ svg {
   min-height: 0;
   padding: 2.2rem 2.4rem;
   border: 0.1rem solid var(--line);
-  border-radius: 1.25rem;
+  border-radius: var(--radius, 1.25rem);
   background: var(--card);
 }
 
@@ -407,7 +408,7 @@ td.room-for {
   padding: 1.3rem 1.5rem;
   border: 1px solid var(--line);
   border-radius: 1rem;
-  background: #fff;
+  background: var(--page);
 }
 
 .staff-card strong {
@@ -469,7 +470,7 @@ td.room-for {
   gap: 1.6rem;
   padding: 0 8rem;
   text-align: center;
-  background: #fff;
+  background: var(--page);
 }
 
 .enrolling svg {
@@ -811,7 +812,7 @@ td.room-for {
 .page-board .tile-radio,
 .page-board .tile-stream,
 .page-board .tile-youtube {
-  border-radius: 1.25rem;
+  border-radius: var(--radius, 1.25rem);
 }
 
 /* The board tiles keep their cards; the card grid adapts to the room the tile has. */

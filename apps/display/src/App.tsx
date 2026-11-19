@@ -10,6 +10,7 @@ import { alarmLevel, createAlarm } from "./lib/alarm";
 import { useLive } from "./lib/useLive";
 import { useNow } from "./lib/useNow";
 import { useRotation } from "./lib/useRotation";
+import { useTheme } from "./lib/useTheme";
 
 const inWindow = (w: { enabled: boolean; from: string; to: string }, at: Date) => {
   if (!w.enabled) return false;
@@ -29,6 +30,8 @@ export function App() {
   const now = useNow(state.clockOffsetMs);
   const page = useRotation(state.config, state.scenes, now);
   const alarm = useRef(createAlarm());
+  // An alarm always looks the same: the theme is off while an emergency or its end notice is on screen.
+  useTheme(state.theme, Boolean(state.emergency) || visibleEndNotice(state.endNotice, now) !== null);
 
   // The alarm follows the emergency: it starts when one appears and stops when it ends.
   const emergency = state.emergency;
