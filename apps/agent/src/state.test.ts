@@ -135,3 +135,30 @@ describe("the page's copy of the server's scene definitions", () => {
     expect([...KNOWN_TILE_KINDS].sort()).toEqual(TILE_KINDS.map((k) => k.kind).sort());
   });
 });
+
+describe("themes", () => {
+  const theme = { id: "t1", name: "Night", version: 2, tokens: { mode: "dark" as const, colors: { primary: "#4f8cff" }, typography: {}, shape: { radius: 12 } }, css: ".card { gap: 1rem }" };
+
+  it("a command sets the theme, null clears it, and the page is given it", () => {
+    const s = applyCommand(initialState(), msg("theme.set", { theme }), NOW);
+    expect(s.theme?.id).toBe("t1");
+    expect(toViewState(s, rt).theme).toMatchObject({ id: "t1", version: 2, css: ".card { gap: 1rem }", tokens: { colors: { primary: "#4f8cff" } } });
+    expect(applyCommand(s, msg("theme.set", { theme: null }), NOW).theme).toBeNull();
+    expect(toViewState(initialState(), rt).theme).toBeNull();
+  });
+
+  it("the desired state is complete: no theme in it means the theme was taken away, even if the command was missed", () => {
+    const withTheme = applyCommand(initialState(), msg("theme.set", { theme }), NOW);
+    expect(applyDesired(withTheme, { theme }, NOW, NOW).theme?.id).toBe("t1");
+    expect(applyDesired(withTheme, {}, NOW, NOW).theme).toBeNull();
+  });
+
+  it("keeps what it had when a desired theme is invalid, and never puts unchecked CSS on a wall", () => {
+    const withTheme = applyCommand(initialState(), msg("theme.set", { theme }), NOW);
+    expect(applyDesired(withTheme, { theme: { ...theme, css: "a { background: url(https://evil.example/x) }" } }, NOW, NOW).theme?.id).toBe("t1");
+    // A state file edited by hand is checked again on the way back from disk.
+    expect(reviveState({ theme }).theme?.id).toBe("t1");
+    expect(reviveState({ theme: { ...theme, css: "@import 'https://evil.example/x.css';" } }).theme).toBeNull();
+    expect(reviveState({ theme: "nope" }).theme).toBeNull();
+  });
+});

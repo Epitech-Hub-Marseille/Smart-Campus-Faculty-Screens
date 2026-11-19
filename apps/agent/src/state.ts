@@ -9,7 +9,9 @@ import {
   type FacultyConfig,
   type PayloadOf,
   type ServerMessage,
+  type ThemeSpec,
   type WireScene,
+  themeSet,
 } from "@smartcampus/protocol";
 import type { ConfigView, EmergencyView, SceneView, ViewState } from "@smartcampus/faculty-local";
 
@@ -30,6 +32,8 @@ export interface AgentState {
   faculty: Faculty | null;
   /** The ACTIVE carousel: every file of it was downloaded and verified before it replaced the previous one. */
   carousel: { scenes: WireScene[]; updatedAt: number };
+  /** The visual theme the server chose for this screen, or null for the page's own look. */
+  theme: ThemeSpec | null;
   announcements: Record<string, Announce>;
   emergency: Emergency | null;
   endNotice: { emergencyId: string; message: string; shownAt: number; durationMs: number } | null;
@@ -41,6 +45,7 @@ export const initialState = (): AgentState => ({
   config: facultyConfig.parse({}),
   faculty: null,
   carousel: { scenes: [], updatedAt: 0 },
+  theme: null,
   announcements: {},
   emergency: null,
   endNotice: null,
@@ -57,6 +62,8 @@ export function reviveState(raw: unknown): AgentState {
   const audio = audioSettingsSet.shape.payload.safeParse(r.audio);
   const emergency = emergencySet.shape.payload.safeParse(r.emergency);
   const carousel = r.carousel as AgentState["carousel"] | undefined;
+  // Checked again on the way back from disk: a file that was edited by hand must not put unchecked CSS on a wall.
+  const theme = themeSet.shape.payload.safeParse({ theme: r.theme ?? null });
   return {
     ...base,
     ...(config.success && { config: config.data }),
@@ -64,6 +71,7 @@ export function reviveState(raw: unknown): AgentState {
     emergency: emergency.success ? emergency.data : null,
     faculty: (r.faculty as Faculty | null) ?? null,
     carousel: carousel && Array.isArray(carousel.scenes) ? carousel : base.carousel,
+    theme: theme.success ? theme.data.theme : null,
     announcements: typeof r.announcements === "object" && r.announcements ? (r.announcements as Record<string, Announce>) : {},
     endNotice: (r.endNotice as AgentState["endNotice"]) ?? null,
     clockOffsetMs: typeof r.clockOffsetMs === "number" ? r.clockOffsetMs : 0,
@@ -78,6 +86,8 @@ export function applyDesired(state: AgentState, desired: Record<string, unknown>
   const config = facultyConfig.safeParse(desired.facultyConfig);
   const audio = audioSettingsSet.shape.payload.safeParse(desired.audioSettings);
   const emergency = emergencySet.shape.payload.safeParse(desired.emergency);
+  // Complete state: a desired state without a theme means the theme was taken away, even if the command was missed.
+  const theme = themeSet.shape.payload.safeParse({ theme: desired.theme ?? null });
   const announcements: Record<string, Announce> = {};
   for (const value of Object.values((desired.announcements as Record<string, unknown> | undefined) ?? {})) {
     const a = announceShow.shape.payload.safeParse(value);
@@ -87,6 +97,7 @@ export function applyDesired(state: AgentState, desired: Record<string, unknown>
     ...state,
     ...(config.success && { config: config.data }),
     ...(audio.success && { audio: audio.data }),
+    theme: theme.success ? theme.data.theme : state.theme,
     announcements,
     emergency: emergency.success ? emergency.data : null,
     endNotice: emergency.success ? null : state.endNotice,
@@ -99,6 +110,8 @@ export function applyCommand(state: AgentState, message: ServerMessage, deviceNo
   switch (message.type) {
     case "faculty.config.set":
       return { ...state, config: message.payload.config };
+    case "theme.set":
+      return { ...state, theme: message.payload.theme };
     case "faculty.content.set":
       return { ...state, faculty: message.payload };
     case "audio.settings.set":
@@ -232,6 +245,7 @@ export function toViewState(state: AgentState, rt: Runtime): ViewState {
     emergency: state.emergency ? emergencyView(state.emergency) : null,
     endNotice: state.endNotice ? { message: state.endNotice.message, shownAt: state.endNotice.shownAt, durationMs: state.endNotice.durationMs } : null,
     weather: state.config.widgets.weather ? rt.weather : null,
+    theme: state.theme ? { id: state.theme.id, name: state.theme.name, version: state.theme.version, tokens: state.theme.tokens, ...(state.theme.css && { css: state.theme.css }) } : null,
     logoUrl: logo && rt.has(logo) ? rt.urlOf(logo) : null,
     audio: state.audio,
   };
