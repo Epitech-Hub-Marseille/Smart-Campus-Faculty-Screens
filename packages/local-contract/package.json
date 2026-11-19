@@ -1,0 +1,25 @@
+{
+  "name": "@smartcampus/faculty-local",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "What the agent hands the kiosk page over ws://localhost, and the pure logic both sides share (schedules, rotation, events)",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.0"
+  }
+}
