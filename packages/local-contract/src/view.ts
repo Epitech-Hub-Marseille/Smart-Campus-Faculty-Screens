@@ -101,6 +101,23 @@ export const DEFAULT_CONFIG: ConfigView = {
   service: "all",
 };
 
+/**
+ * A visual theme, as the agent checked it: tokens (colours, font, text scale, corner radius) and optional CSS. Both were
+ * validated by the protocol package, so the page only applies them. They never reach an emergency screen.
+ */
+export interface ThemeView {
+  id: string;
+  name: string;
+  version: number;
+  tokens: {
+    mode?: "light" | "dark";
+    colors: Partial<Record<"background" | "surface" | "text" | "muted" | "primary" | "primaryText" | "border" | "success" | "warning" | "danger", string>>;
+    typography: { fontFamily?: "system" | "sans" | "serif" | "mono" | "condensed"; scale?: number };
+    shape: { radius?: number };
+  };
+  css?: string;
+}
+
 export type EmergencyKind = "fire" | "biohazard" | "nuclear" | "bomb" | "seismic" | "power";
 
 export interface EmergencyView {
@@ -147,6 +164,8 @@ export interface ViewState {
   emergency: EmergencyView | null;
   endNotice: EndNoticeView | null;
   weather: WeatherView | null;
+  /** Null: the page's own look. */
+  theme: ThemeView | null;
   logoUrl: string | null;
   audio: { volume: number; quietHours: { enabled: boolean; from: string; to: string } };
 }
@@ -170,6 +189,7 @@ export const emptyViewState = (): ViewState => ({
   emergency: null,
   endNotice: null,
   weather: null,
+  theme: null,
   logoUrl: null,
   audio: { volume: 80, quietHours: { enabled: false, from: "22:00", to: "06:00" } },
 });

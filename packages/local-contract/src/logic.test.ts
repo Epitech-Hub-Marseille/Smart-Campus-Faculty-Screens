@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { activeScenes, boardEvents, effectiveStaff, emergencyPresentation, FALLBACK_SCENES, rotation, roomRows, showsBoard, visibleAnnouncements, visibleEndNotice } from "./logic.js";
-import { KNOWN_TILE_KINDS, SCENE_LAYOUTS, type ReservationView, type SceneView, type StaffView } from "./view.js";
+import { FONT_STACKS, themeVariables, activeScenes, boardEvents, effectiveStaff, emergencyPresentation, FALLBACK_SCENES, rotation, roomRows, showsBoard, visibleAnnouncements, visibleEndNotice } from "./logic.js";
+import { KNOWN_TILE_KINDS, SCENE_LAYOUTS, type ReservationView, type SceneView, type StaffView, type ThemeView } from "./view.js";
 
 const noon = new Date(2026, 10, 6, 12, 0, 0).getTime();
 const H = 3_600_000;
@@ -126,5 +126,29 @@ describe("emergencyPresentation", () => {
   it("names the assembly point when the site has one, and says what to do without it", () => {
     expect(emergencyPresentation("fire", "Car park A").actions[2].detail).toBe("Meet at Car park A.");
     expect(emergencyPresentation("fire", "").actions[2].detail).toBe("Go to the assembly point.");
+  });
+});
+
+describe("themeVariables", () => {
+  const theme = (tokens: Partial<ThemeView["tokens"]>): ThemeView => ({ id: "t", name: "T", version: 1, tokens: { colors: {}, typography: {}, shape: {}, ...tokens } });
+
+  it("maps the tokens to the page's variables and sets nothing for what a theme leaves out", () => {
+    const vars = themeVariables(theme({ colors: { primary: "#4f8cff", text: "#111111", border: "#cccccc" }, typography: { scale: 1.2, fontFamily: "serif" }, shape: { radius: 8 } }));
+    expect(vars).toEqual({ "--ink": "#111111", "--line": "#cccccc", "--accent": "#4f8cff", "--radius": "0.5rem", "--scale": "1.2", "--font": FONT_STACKS.serif });
+    expect(themeVariables(theme({}))).toEqual({});
+  });
+
+  it("a dark theme starts from dark colours, and the colours it gives win over them", () => {
+    const dark = themeVariables(theme({ mode: "dark", colors: { background: "#000000", primary: "#00ff88" } }));
+    expect(dark["--page"]).toBe("#000000");
+    expect(dark["--card"]).toBe("#1a1d1f");
+    expect(dark["--ink"]).toBe("#e8f1ec");
+    expect(dark["--accent"]).toBe("#00ff88");
+    // Light is the page's own, so a light theme sets only what it names.
+    expect(themeVariables(theme({ mode: "light" }))).toEqual({});
+  });
+
+  it("knows every font family a theme may name", () => {
+    expect(Object.keys(FONT_STACKS).sort()).toEqual(["condensed", "mono", "sans", "serif", "system"]);
   });
 });

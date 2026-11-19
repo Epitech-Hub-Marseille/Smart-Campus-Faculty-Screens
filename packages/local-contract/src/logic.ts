@@ -1,4 +1,4 @@
-import { isKnownKind, type AnnouncementView, type EndNoticeView, type ReservationView, type SceneView, type StaffView, type ViewState } from "./view.js";
+import { isKnownKind, type ThemeView, type AnnouncementView, type EndNoticeView, type ReservationView, type SceneView, type StaffView, type ViewState } from "./view.js";
 
 /**
  * The scenes to show right now: the ones whose window has begun and not ended, that have something this page can
@@ -169,4 +169,45 @@ export function emergencyPresentation(kind: string, assemblyPoint: string): Emer
         ],
       };
   }
+}
+
+// ---- Themes ----------------------------------------------------------------------------------
+
+/** Font stacks of the theme's font families. Only fonts bundled with the page or present on every system: a kiosk has no network. */
+export const FONT_STACKS: Record<string, string> = {
+  system: "system-ui, sans-serif",
+  sans: '"Inter Variable", Inter, system-ui, sans-serif',
+  serif: 'Georgia, "Times New Roman", serif',
+  mono: 'ui-monospace, "JetBrains Mono", Menlo, monospace',
+  condensed: '"Barlow Condensed", "Arial Narrow", sans-serif',
+};
+
+/** What a dark theme starts from when it does not give a colour. */
+const DARK_BASE = { background: "#0e0f10", surface: "#1a1d1f", text: "#e8f1ec", muted: "#8a9a92", border: "#2a2e30" } as const;
+
+/**
+ * The CSS variables a theme sets on the page. A theme that leaves a colour out sets nothing for it, so the page's own colour
+ * stays, except in dark mode, where the page's light colours would be unreadable on a dark background.
+ */
+export function themeVariables(theme: ThemeView): Record<string, string> {
+  const { colors, typography, shape, mode } = theme.tokens;
+  const dark = mode === "dark";
+  const pick = (given: string | undefined, fallback: string | undefined) => given ?? (dark ? fallback : undefined);
+  const entries: [string, string | undefined][] = [
+    ["--page", pick(colors.background, DARK_BASE.background)],
+    ["--card", pick(colors.surface, DARK_BASE.surface)],
+    ["--ink", pick(colors.text, DARK_BASE.text)],
+    ["--muted", pick(colors.muted, DARK_BASE.muted)],
+    ["--line", pick(colors.border, DARK_BASE.border)],
+    ["--accent", colors.primary],
+    ["--accent-ink", colors.primaryText],
+    ["--ok", colors.success],
+    ["--warn", colors.warning],
+    ["--danger", colors.danger],
+    // The page is drawn at 1080p where 1rem is 16px: a radius in pixels of that reference becomes rem.
+    ["--radius", shape.radius === undefined ? undefined : `${shape.radius / 16}rem`],
+    ["--scale", typography.scale === undefined ? undefined : String(typography.scale)],
+    ["--font", typography.fontFamily ? FONT_STACKS[typography.fontFamily] : undefined],
+  ];
+  return Object.fromEntries(entries.filter((e): e is [string, string] => e[1] !== undefined));
 }
