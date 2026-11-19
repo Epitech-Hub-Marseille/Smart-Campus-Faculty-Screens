@@ -9,7 +9,7 @@ campus information board, the custom content an administrator sends, and emergen
 | **Information board** | After the reference design (`docs/inspiration/default-info-screen`): events of the day (now, next, later), booked rooms, announcements, and the news. Header with the site name, logo, date, clock and weather. |
 | **Staff availability** | Who can be reached, with their note, filtered by service. A status with an end time lapses by itself. |
 | **Carousel of scenes** | What the screen rotates through is a list of scenes the console builds. A scene is a layout (full screen, two columns, two rows, main and side, main and two side, four tiles) with a tile per slot, shown for its own time and between its own dates. A tile is the news, the staff, the reservations, an image or video of the media library, a text, a web page, **live radio**, a **live video stream** (HLS, live MP4 or an MJPEG camera) or **YouTube**. A tile of a kind this screen does not know is skipped, so the server can add kinds before every screen is updated. |
-| **Emergency** | Takes over the screen, after the reference design (`docs/inspiration/emergency-screens`): hazard stripes, a headline, three actions per kind of emergency, the assembly point and the emergency number, and an alarm made in the browser. An "alert over" notice can follow. |
+| **Emergency** | Takes over the screen with a terminal-style bulletin: bold monospace on the dark colour of the kind of alert, a white double frame, the alert in yellow, what is happening, the order to follow, numbered steps (three per kind, then a closing line), the assembly point, the emergency number and hazard stripes, and an alarm made in the browser. An "alert over" notice can follow. |
 | **Sounds** | InterCom broadcasts and emergency read-outs, downloaded and verified like any other file. |
 | **Offline** | Keeps the last known screen through an outage and a restart, with a badge saying so. Reconnects by itself (1 to 60 s with jitter). |
 
@@ -104,7 +104,10 @@ The server can give a screen a visual theme (`theme.set`, part of the desired st
 text scale and a corner radius as JSON tokens, plus optional CSS. The page sets them as CSS variables on the root and adds the CSS in one `<style>`
 element (`apps/display/src/lib/useTheme.ts`). The agent keeps the theme with its state and checks it again when it reads it back from disk, so a
 hand-edited file cannot put unchecked CSS on a wall; the CSS rules (no `url()`, `@import`, `@font-face`, escapes; 12,000 characters) are the
-protocol package's. **While an emergency or the end-of-alert notice is showing, the page removes the theme completely**: an alarm always looks the same.
+protocol package's. **While an emergency or the end-of-alert notice is showing, the page removes the theme's colours, text size and CSS**, so an alarm keeps its colour and its white text.
+A theme can only dress an alert through its `emergency` section: the theme's font files, a plain yellow band instead of hazard stripes, corners, and dark page and
+steps-panel backgrounds, as variables set on the alert's own element (`emergencyVariables`). The agent refuses a background white text could not be read on
+(the part is dropped and the rest of the theme kept), and if the dressed alert fails to render, `FallbackBoundary` draws the default alert.
 A theme that leaves a colour out keeps the page's own; a dark theme starts from dark colours.
 
 A theme may also name font files for three slots (`body`, `heading`, `mono`). They are assets like any other: the agent downloads each with a signed
