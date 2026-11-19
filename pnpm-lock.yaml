@@ -548,7 +548,7 @@ packages:
     version: 0.1.0
 
   '@smartcampus/protocol@file:vendor/smartcampus-protocol-0.1.0.tgz':
-    resolution: {integrity: sha512-UfywDmBPSPICMcW/HRrU63cwOZ+iIJnK8DuswklFr2lIdj6yS5SijfwTEoi9WRFZ27DfQ8Ey/ORFArMKxkHcUw==, tarball: file:vendor/smartcampus-protocol-0.1.0.tgz}
+    resolution: {integrity: sha512-4bJNjAOMyWfP40iVv8kaukTFR0PRBdHMV3ZzF2Px20oMBPQk80Qiv94O0/hWEbM8BDwtqIovJRAwscQsD9naEw==, tarball: file:vendor/smartcampus-protocol-0.1.0.tgz}
     version: 0.1.0
 
   '@testing-library/dom@10.4.2':
