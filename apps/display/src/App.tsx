@@ -1,0 +1,63 @@
+import { WifiOff } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { showsBoard, visibleEndNotice, type LiveMessage } from "@smartcampus/faculty-local";
+import { EmergencyScreen } from "./components/Emergency";
+import { EndNotice } from "./components/EndNotice";
+import { Enrolling } from "./components/Enrolling";
+import { Header } from "./components/Header";
+import { Scene } from "./components/Scene";
+import { alarmLevel, createAlarm } from "./lib/alarm";
+import { useLive } from "./lib/useLive";
+import { useNow } from "./lib/useNow";
+import { useRotation } from "./lib/useRotation";
+
+const inWindow = (w: { enabled: boolean; from: string; to: string }, at: Date) => {
+  if (!w.enabled) return false;
+  const m = at.getHours() * 60 + at.getMinutes();
+  const t = (s: string) => Number(s.slice(0, 2)) * 60 + Number(s.slice(3, 5));
+  return t(w.from) <= t(w.to) ? m >= t(w.from) && m < t(w.to) : m >= t(w.from) || m < t(w.to);
+};
+
+function playSound(message: Extract<LiveMessage, { type: "audio" }>) {
+  const audio = new Audio(message.src);
+  audio.volume = Math.min(1, Math.max(0, message.volume / 100));
+  void audio.play().catch(() => undefined);
+}
+
+export function App() {
+  const { state, connected } = useLive(playSound);
+  const now = useNow(state.clockOffsetMs);
+  const page = useRotation(state.config, state.scenes, now);
+  const alarm = useRef(createAlarm());
+
+  // The alarm follows the emergency: it starts when one appears and stops when it ends.
+  const emergency = state.emergency;
+  const alarmKey = emergency ? `${emergency.emergencyId}:${emergency.testMode}:${emergency.testVolume}` : "";
+  useEffect(() => {
+    if (!emergency) return alarm.current.stop();
+    const quiet = inWindow(state.audio.quietHours, new Date(Date.now() + state.clockOffsetMs));
+    alarm.current.start(emergency.loud, alarmLevel(emergency, quiet));
+    return () => alarm.current.stop();
+  }, [alarmKey]);
+
+  if (emergency) return <EmergencyScreen emergency={emergency} config={state.config} now={now} />;
+
+  if (state.phase === "enrolling" && state.enrollment) return <Enrolling enrollment={state.enrollment} />;
+
+  const notice = visibleEndNotice(state.endNotice, now);
+  if (notice) return <EndNotice notice={notice} config={state.config} />;
+
+  // The header (logo, clock, weather) goes with the information board; a full-bleed picture or stream has none.
+  const board = showsBoard(page.scene);
+  return (
+    <div className={`screen ${board ? "page-board" : "page-media"}`}>
+      {board && <Header config={state.config} logoUrl={state.logoUrl} weather={state.weather} now={now} />}
+      <Scene scene={page.scene} state={state} now={now} />
+      {(!state.online || !connected) && (
+        <div className="offline" role="status">
+          <WifiOff aria-hidden /> {connected ? "Offline, showing the last known content" : "Waiting for the screen agent"}
+        </div>
+      )}
+    </div>
+  );
+}
