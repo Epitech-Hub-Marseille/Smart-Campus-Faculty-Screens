@@ -116,29 +116,42 @@ describe("StaffBoard", () => {
 describe("EmergencyScreen", () => {
   const emergency = { emergencyId: "E1", kind: "fire" as const, title: "Fire detected", instructions: "Leave by the nearest exit.", testMode: false, testVolume: 20, startedAt: noon, color: "#ff6a1f", loud: true };
 
-  it("shows the headline, what it means, the three actions, the place and who to call", () => {
+  it("shows the alert, what it means, the order to follow, the steps, the place and who to call", () => {
     render(<EmergencyScreen emergency={emergency} config={state().config} now={noon} />);
     expect(screen.getByRole("alert")).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "EVACUATE NOW" })).toBeTruthy();
-    expect(screen.getByText("EMERGENCY ALERT")).toBeTruthy();
-    expect(screen.getByText("Fire detected")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Fire detected" })).toBeTruthy();
     expect(screen.getByText("Leave by the nearest exit.")).toBeTruthy();
-    expect(screen.getByText("Use the stairs")).toBeTruthy();
-    expect(screen.getByText("Meet at Car park A.")).toBeTruthy();
-    expect(screen.getByText("Building 2")).toBeTruthy();
-    expect(screen.getByText("112")).toBeTruthy();
+    expect(screen.getByText(">> EVACUATE NOW <<")).toBeTruthy();
+    expect(screen.getByText(/1\. Use the stairs\. Do not use elevators\./)).toBeTruthy();
+    expect(screen.getByText(/3\. Assemble outside\. Meet at Car park A\./)).toBeTruthy();
+    expect(screen.getByText(/4\. Follow instructions from the staff/)).toBeTruthy();
+    expect(screen.getByText(/\[Building 2\]/)).toBeTruthy();
+    expect(screen.getByText("[112]")).toBeTruthy();
+    expect(screen.getByRole("alert").getAttribute("data-kind")).toBe("fire");
   });
 
   it("says it is a test, and not that people must act", () => {
     render(<EmergencyScreen emergency={{ ...emergency, testMode: true }} config={state().config} now={noon} />);
-    expect(screen.getByText("TEST · EMERGENCY ALERT")).toBeTruthy();
+    expect(screen.getByText(/TEST - NO REAL EMERGENCY/)).toBeTruthy();
     expect(screen.getByText(/test of the emergency system/)).toBeTruthy();
   });
 
   it("adapts to each kind of emergency and to a site with no details", () => {
     render(<EmergencyScreen emergency={{ ...emergency, kind: "seismic" }} config={emptyViewState().config} now={noon} />);
-    expect(screen.getByRole("heading", { name: "DROP, COVER, HOLD" })).toBeTruthy();
+    expect(screen.getByText(">> DROP, COVER, HOLD <<")).toBeTruthy();
     expect(screen.queryByText(/EMERGENCY SERVICES/)).toBeNull();
+    expect(screen.getByRole("alert").getAttribute("data-kind")).toBe("seismic");
+  });
+
+  it("is dressed by the theme's alert part, and plain without one", () => {
+    const theme = { id: "t", name: "T", version: 1, tokens: { colors: {}, typography: {}, shape: {} }, emergency: { fonts: false, frame: "bar" as const, radius: 8, colors: { background: "#001070" } } };
+    const dressed = render(<EmergencyScreen emergency={emergency} config={state().config} now={noon} theme={theme} />);
+    const alert = dressed.getByRole("alert");
+    expect(alert.className).toContain("frame-bar");
+    expect(alert.style.getPropertyValue("--em-solid")).toBe("#001070");
+    expect(alert.style.getPropertyValue("--em-radius")).toBe("0.5rem");
+    cleanup();
+    expect(render(<EmergencyScreen emergency={emergency} config={state().config} now={noon} />).getByRole("alert").getAttribute("style")).not.toContain("--em-");
   });
 });
 
@@ -146,6 +159,7 @@ describe("EndNotice", () => {
   it("tells people the alert is over, with the message", () => {
     render(<EndNotice notice={{ message: "You may return to the building.", shownAt: noon, durationMs: 60_000 }} config={state().config} />);
     expect(screen.getByRole("heading", { name: "Alert over" })).toBeTruthy();
+    expect(screen.getByText(">> ALL CLEAR <<")).toBeTruthy();
     expect(screen.getByText("You may return to the building.")).toBeTruthy();
   });
 });
