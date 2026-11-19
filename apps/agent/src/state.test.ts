@@ -157,6 +157,16 @@ describe("themes", () => {
     expect(neededAssets(applyCommand(s, msg("theme.set", { theme: null }), NOW))).toEqual([]);
   });
 
+  it("hands the page what the theme says about alerts, and ignores an alert part that is invalid while keeping the theme", () => {
+    const dressed = { ...theme, emergency: { fonts: true, frame: "bar" as const, colors: { background: "#001070" } } };
+    expect(toViewState(applyCommand(initialState(), msg("theme.set", { theme: dressed }), NOW), rt).theme?.emergency).toMatchObject({ frame: "bar" });
+    expect(toViewState(applyCommand(initialState(), msg("theme.set", { theme }), NOW), rt).theme?.emergency).toBeUndefined();
+    const broken = { ...theme, emergency: { colors: { background: "#ffffff" } } };
+    const s = applyDesired(initialState(), { theme: broken }, NOW, NOW);
+    expect(s.theme?.id).toBe("t1");
+    expect(s.theme?.emergency).toBeUndefined();
+  });
+
   it("the desired state is complete: no theme in it means the theme was taken away, even if the command was missed", () => {
     const withTheme = applyCommand(initialState(), msg("theme.set", { theme }), NOW);
     expect(applyDesired(withTheme, { theme }, NOW, NOW).theme?.id).toBe("t1");

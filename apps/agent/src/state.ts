@@ -189,6 +189,7 @@ function themeView(theme: ThemeSpec, rt: Runtime): NonNullable<ViewState["theme"
     version: theme.version,
     tokens: theme.tokens,
     ...(Object.keys(fonts).length > 0 && { fonts }),
+    ...(theme.emergency && { emergency: theme.emergency }),
     ...(theme.css && { css: theme.css }),
   };
 }
