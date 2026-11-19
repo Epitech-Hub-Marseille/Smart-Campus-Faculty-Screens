@@ -182,6 +182,19 @@ export const FONT_STACKS: Record<string, string> = {
   condensed: '"Barlow Condensed", "Arial Narrow", sans-serif',
 };
 
+/** The family name a theme font is registered under, one per slot. The same names are used on the door unit. */
+const fontFamilyOf = (slot: "body" | "heading" | "mono") => `"sc-${slot}"`;
+
+/**
+ * The `@font-face` rules for the font files of a theme. They are written here, from local URLs the agent produced, and
+ * never taken from the theme's own CSS, which may not contain `@font-face` or `url()`.
+ */
+export function themeFontFaces(theme: ThemeView): string {
+  return Object.entries(theme.fonts ?? {})
+    .map(([slot, url]) => `@font-face{font-family:${fontFamilyOf(slot as "body" | "heading" | "mono")};src:url("${url}");font-display:swap}`)
+    .join("\n");
+}
+
 /** What a dark theme starts from when it does not give a colour. */
 const DARK_BASE = { background: "#0e0f10", surface: "#1a1d1f", text: "#e8f1ec", muted: "#8a9a92", border: "#2a2e30" } as const;
 
@@ -192,6 +205,8 @@ const DARK_BASE = { background: "#0e0f10", surface: "#1a1d1f", text: "#e8f1ec", 
 export function themeVariables(theme: ThemeView): Record<string, string> {
   const { colors, typography, shape, mode } = theme.tokens;
   const dark = mode === "dark";
+  const baseStack = FONT_STACKS[typography.fontFamily ?? "sans"]!;
+  const bodyFont = theme.fonts?.body ? `${fontFamilyOf("body")}, ${baseStack}` : undefined;
   const pick = (given: string | undefined, fallback: string | undefined) => given ?? (dark ? fallback : undefined);
   const entries: [string, string | undefined][] = [
     ["--page", pick(colors.background, DARK_BASE.background)],
@@ -207,7 +222,11 @@ export function themeVariables(theme: ThemeView): Record<string, string> {
     // The page is drawn at 1080p where 1rem is 16px: a radius in pixels of that reference becomes rem.
     ["--radius", shape.radius === undefined ? undefined : `${shape.radius / 16}rem`],
     ["--scale", typography.scale === undefined ? undefined : String(typography.scale)],
-    ["--font", typography.fontFamily ? FONT_STACKS[typography.fontFamily] : undefined],
+    ["--font", bodyFont ?? (typography.fontFamily ? FONT_STACKS[typography.fontFamily] : undefined)],
+    // Only for a slot that has a file; theme CSS reads them as `var(--font-heading)`, or with a fallback of its own.
+    ["--font-body", bodyFont],
+    ["--font-heading", theme.fonts?.heading && `${fontFamilyOf("heading")}, ${baseStack}`],
+    ["--font-mono", theme.fonts?.mono && `${fontFamilyOf("mono")}, ${FONT_STACKS.mono}`],
   ];
   return Object.fromEntries(entries.filter((e): e is [string, string] => e[1] !== undefined));
 }

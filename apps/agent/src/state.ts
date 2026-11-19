@@ -170,10 +170,27 @@ export function prune(state: AgentState, deviceNow: number): AgentState {
   return changed ? { ...state, announcements, endNotice } : state;
 }
 
-/** Every file the state needs on disk: the carousel's media and the logo. Anything else can be deleted. */
+/** The font files of the current theme. */
+export const fontsOfTheme = (theme: ThemeSpec | null): AssetRef[] => Object.values(theme?.fonts ?? {});
+
+/** Every file the state needs on disk: the carousel's media, the logo and the theme's fonts. Anything else can be deleted. */
 export function neededAssets(state: AgentState): AssetRef[] {
-  const refs = assetsOfScenes(state.carousel.scenes);
+  const refs = [...assetsOfScenes(state.carousel.scenes), ...fontsOfTheme(state.theme)];
   return state.config.site.logo ? [...refs, state.config.site.logo] : refs;
+}
+
+/** The theme as the page gets it (`fonts` may be missing in a state saved before themes had fonts). A font whose file is not verified yet is left out: the page keeps its own font until it is. */
+function themeView(theme: ThemeSpec, rt: Runtime): NonNullable<ViewState["theme"]> {
+  const fonts: NonNullable<NonNullable<ViewState["theme"]>["fonts"]> = {};
+  for (const [slot, ref] of Object.entries(theme.fonts ?? {})) if (rt.has(ref)) fonts[slot as keyof typeof fonts] = rt.urlOf(ref);
+  return {
+    id: theme.id,
+    name: theme.name,
+    version: theme.version,
+    tokens: theme.tokens,
+    ...(Object.keys(fonts).length > 0 && { fonts }),
+    ...(theme.css && { css: theme.css }),
+  };
 }
 
 export interface Runtime {
@@ -245,7 +262,7 @@ export function toViewState(state: AgentState, rt: Runtime): ViewState {
     emergency: state.emergency ? emergencyView(state.emergency) : null,
     endNotice: state.endNotice ? { message: state.endNotice.message, shownAt: state.endNotice.shownAt, durationMs: state.endNotice.durationMs } : null,
     weather: state.config.widgets.weather ? rt.weather : null,
-    theme: state.theme ? { id: state.theme.id, name: state.theme.name, version: state.theme.version, tokens: state.theme.tokens, ...(state.theme.css && { css: state.theme.css }) } : null,
+    theme: state.theme ? themeView(state.theme, rt) : null,
     logoUrl: logo && rt.has(logo) ? rt.urlOf(logo) : null,
     audio: state.audio,
   };

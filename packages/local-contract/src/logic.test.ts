@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FONT_STACKS, themeVariables, activeScenes, boardEvents, effectiveStaff, emergencyPresentation, FALLBACK_SCENES, rotation, roomRows, showsBoard, visibleAnnouncements, visibleEndNotice } from "./logic.js";
+import { FONT_STACKS, themeFontFaces, themeVariables, activeScenes, boardEvents, effectiveStaff, emergencyPresentation, FALLBACK_SCENES, rotation, roomRows, showsBoard, visibleAnnouncements, visibleEndNotice } from "./logic.js";
 import { KNOWN_TILE_KINDS, SCENE_LAYOUTS, type ReservationView, type SceneView, type StaffView, type ThemeView } from "./view.js";
 
 const noon = new Date(2026, 10, 6, 12, 0, 0).getTime();
@@ -136,6 +136,17 @@ describe("themeVariables", () => {
     const vars = themeVariables(theme({ colors: { primary: "#4f8cff", text: "#111111", border: "#cccccc" }, typography: { scale: 1.2, fontFamily: "serif" }, shape: { radius: 8 } }));
     expect(vars).toEqual({ "--ink": "#111111", "--line": "#cccccc", "--accent": "#4f8cff", "--radius": "0.5rem", "--scale": "1.2", "--font": FONT_STACKS.serif });
     expect(themeVariables(theme({}))).toEqual({});
+  });
+
+  it("a font file sets the family of its slot, and a slot without one sets nothing", () => {
+    const withFonts = theme({ typography: { fontFamily: "serif" } });
+    withFonts.fonts = { body: "/media/B.woff2", heading: "/media/H.woff2" };
+    const vars = themeVariables(withFonts);
+    expect(vars["--font"]).toBe(`"sc-body", ${FONT_STACKS.serif}`);
+    expect(vars["--font-heading"]).toBe(`"sc-heading", ${FONT_STACKS.serif}`);
+    expect(vars["--font-mono"]).toBeUndefined();
+    expect(themeFontFaces(withFonts)).toBe('@font-face{font-family:"sc-body";src:url("/media/B.woff2");font-display:swap}\n@font-face{font-family:"sc-heading";src:url("/media/H.woff2");font-display:swap}');
+    expect(themeFontFaces(theme({}))).toBe("");
   });
 
   it("a dark theme starts from dark colours, and the colours it gives win over them", () => {

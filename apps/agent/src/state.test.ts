@@ -147,6 +147,16 @@ describe("themes", () => {
     expect(toViewState(initialState(), rt).theme).toBeNull();
   });
 
+  it("fonts are files to download: kept from the wire, needed on disk, and given to the page only once verified", () => {
+    const ref = { assetId: "F1", sha256: "a".repeat(64), size: 1200, mime: "font/woff2" };
+    const branded = { ...theme, fonts: { heading: ref } };
+    const s = applyCommand(initialState(), msg("theme.set", { theme: branded }), NOW);
+    expect(neededAssets(s)).toContainEqual(ref);
+    expect(toViewState(s, rt).theme?.fonts).toEqual({ heading: "/assets/F1" });
+    expect(toViewState(s, { ...rt, has: () => false }).theme?.fonts).toBeUndefined();
+    expect(neededAssets(applyCommand(s, msg("theme.set", { theme: null }), NOW))).toEqual([]);
+  });
+
   it("the desired state is complete: no theme in it means the theme was taken away, even if the command was missed", () => {
     const withTheme = applyCommand(initialState(), msg("theme.set", { theme }), NOW);
     expect(applyDesired(withTheme, { theme }, NOW, NOW).theme?.id).toBe("t1");
