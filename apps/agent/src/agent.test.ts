@@ -336,6 +336,16 @@ describe("audio", () => {
     expect(a.published.filter((m) => m.type === "audio")).toEqual([{ type: "audio", id: "n2", src: "/audio/SOUND1.wav", volume: 100, urgent: true }]);
   });
 
+  it("hands the read-out of a test emergency to the page as one to play through the alarm, at the volume of the screen", async () => {
+    gateway.desired = { audioSettings: { volume: 30, quietHours: { enabled: false, from: "22:00", to: "06:00" } } };
+    const a = agent({ serve: () => wav });
+    await until(() => a.controller.view().online);
+    // A test is not urgent (quiet hours would apply) but it names its emergency.
+    const id = gateway.send("audio.play", play({ announcementId: "n3", emergencyId: "E1" }));
+    await until(() => gateway.acksFor(id) === 1);
+    expect(a.published.filter((m) => m.type === "audio")).toEqual([{ type: "audio", id: "n3", src: "/audio/SOUND1.wav", volume: 30, urgent: true }]);
+  });
+
   it("refuses a sound that is not what was announced", async () => {
     const a = agent({ serve: () => ({ data: Buffer.concat([wavData, Buffer.from("x")]), contentType: "audio/wav" }) });
     await until(() => a.controller.view().online);
