@@ -56,14 +56,17 @@ export function EmergencyScreen({ emergency, config, theme = null }: { emergency
         </p>
         <hr className="alert-rule" />
         <ol className="steps">
-          {steps.map((step, i) => (
+          {steps.map((text, i) => {
+            const step = `${i + 1}. ${text}`;
+            return (
             <li key={i}>
               <span className="chev" aria-hidden>
                 &gt;&gt;
               </span>
               <span style={{ fontSize: `${fitFontSize(step, STEP_WIDTH, 32, 0.02)}px` }}>{step}</span>
             </li>
-          ))}
+            );
+          })}
         </ol>
         <p className="alert-foot">
           <span>&gt;&gt; EMERGENCY SERVICES</span>

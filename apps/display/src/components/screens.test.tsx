@@ -125,11 +125,11 @@ describe("EmergencyScreen", () => {
     expect(screen.getByText("EVACUATE NOW")).toBeTruthy();
     const steps = [...alert.querySelectorAll(".steps li")].map((li) => li.textContent);
     expect(steps).toEqual([
-      ">>Use the stairs. Do not use elevators.",
-      ">>Leave belongings. Go to the nearest exit now.",
-      ">>Assemble outside. Meet at Car park A.",
-      ">>Do not re-enter until staff allow it.",
-      ">>Follow staff. Help others if it is safe.",
+      ">>1. Use the stairs. Do not use elevators.",
+      ">>2. Leave belongings. Go to the nearest exit now.",
+      ">>3. Assemble outside. Meet at Car park A.",
+      ">>4. Do not re-enter until staff allow it.",
+      ">>5. Follow staff. Help others if it is safe.",
     ]);
     expect(screen.getByText(/\[Building 2\]/)).toBeTruthy();
     expect(screen.getByText("112")).toBeTruthy();
