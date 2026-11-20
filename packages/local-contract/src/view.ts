@@ -183,7 +183,8 @@ export interface ViewState {
 export type LiveMessage =
   | { type: "state"; state: ViewState }
   /** A sound to play now (an InterCom broadcast or an emergency read-out), already downloaded and verified. */
-  | { type: "audio"; id: string; src: string; volume: number };
+  /** `urgent`: an emergency read-out, heard through the silence of an alarm while the alarm itself steps back. */
+  | { type: "audio"; id: string; src: string; volume: number; urgent?: boolean };
 
 export const emptyViewState = (): ViewState => ({
   phase: "starting",

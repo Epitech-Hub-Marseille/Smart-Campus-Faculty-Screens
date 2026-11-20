@@ -212,7 +212,7 @@ export class Controller {
       this.remember(message.id);
       this.ack(message.id);
       // An urgent read-out is heard at full volume, like the alarm.
-      this.deps.publish({ type: "audio", id: announcementId, src: `/audio/${name}`, volume: urgent ? 100 : this.state.audio.volume });
+      this.deps.publish({ type: "audio", id: announcementId, src: `/audio/${name}`, volume: urgent ? 100 : this.state.audio.volume, ...(urgent && { urgent: true }) });
     } catch (err) {
       this.remember(message.id);
       this.sink?.send("nack", nackPayload(message.id, `download failed: ${errorMessage(err)}`));

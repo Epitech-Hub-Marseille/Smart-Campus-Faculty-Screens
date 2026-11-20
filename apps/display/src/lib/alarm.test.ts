@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { alarmLevel, createAlarm } from "./alarm";
+import { alarmLevel, createAlarm, DUCK_CUTOFF_HZ, DUCK_GAIN } from "./alarm";
 
 describe("alarmLevel", () => {
   it("a real danger alarm is at full level and a power cut is a soft chime, whatever the quiet hours", () => {
@@ -24,7 +24,9 @@ function fakeContext(state: "running" | "suspended") {
     close: vi.fn(() => Promise.resolve()),
     destination: {},
     createBuffer: vi.fn(() => ({ copyToChannel: vi.fn() })),
-    createGain: vi.fn(() => ({ gain: { value: 0 }, connect: vi.fn() })),
+    currentTime: 0,
+    createGain: vi.fn(() => ({ gain: { value: 0, setTargetAtTime: vi.fn() }, connect: vi.fn() })),
+    createBiquadFilter: vi.fn(() => ({ type: "", frequency: { value: 0, setTargetAtTime: vi.fn() }, connect: vi.fn() })),
     createBufferSource: vi.fn(() => ({ connect: vi.fn(), start: vi.fn(), stop: vi.fn(), loop: false, buffer: null })),
   };
   return ctx as unknown as AudioContext & typeof ctx;
@@ -62,5 +64,37 @@ describe("the alarm in a browser that keeps sound suspended", () => {
     const silent = fakeContext("running");
     createAlarm(() => silent).start("fire", 0);
     expect(silent.createBufferSource).not.toHaveBeenCalled();
+  });
+});
+
+describe("stepping back for a voice", () => {
+  const started = (level = 1) => {
+    const ctx = fakeContext("running");
+    const alarm = createAlarm(() => ctx);
+    alarm.start("fire", level);
+    const gain = ctx.createGain.mock.results[0]!.value.gain;
+    const cutoff = ctx.createBiquadFilter.mock.results[0]!.value.frequency;
+    return { alarm, gain, cutoff };
+  };
+
+  it("lowers the alarm and muffles it while a voice speaks, then brings it back", () => {
+    const { alarm, gain, cutoff } = started(0.8);
+    alarm.duck(true);
+    expect(gain.setTargetAtTime).toHaveBeenLastCalledWith(0.8 * DUCK_GAIN, 0, expect.any(Number));
+    expect(cutoff.setTargetAtTime).toHaveBeenLastCalledWith(DUCK_CUTOFF_HZ, 0, expect.any(Number));
+    alarm.duck(false);
+    expect(gain.setTargetAtTime).toHaveBeenLastCalledWith(0.8, 0, expect.any(Number));
+    expect(cutoff.setTargetAtTime).toHaveBeenLastCalledWith(20_000, 0, expect.any(Number));
+  });
+
+  it("is already stepped back when the alarm starts in the middle of a voice, and ignores a duck when nothing sounds", () => {
+    const quiet = createAlarm(() => fakeContext("running"));
+    expect(() => quiet.duck(true)).not.toThrow();
+    const ctx = fakeContext("running");
+    quiet.duck(true);
+    const alarm = createAlarm(() => ctx);
+    alarm.duck(true);
+    alarm.start("bomb", 1);
+    expect(ctx.createGain.mock.results[0]!.value.gain.setTargetAtTime).toHaveBeenCalledWith(DUCK_GAIN, 0, expect.any(Number));
   });
 });

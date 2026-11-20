@@ -9,7 +9,7 @@ import { Header } from "./components/Header";
 import { Scene } from "./components/Scene";
 import { alarmLevel, createAlarm } from "./lib/alarm";
 import { SilenceProvider } from "./lib/silence";
-import { playSound, silenceSounds } from "./lib/sounds";
+import { onUrgentSound, playSound, silenceSounds } from "./lib/sounds";
 import { useLive } from "./lib/useLive";
 import { useNow } from "./lib/useNow";
 import { useRotation } from "./lib/useRotation";
@@ -23,7 +23,7 @@ const inWindow = (w: { enabled: boolean; from: string; to: string }, at: Date) =
 };
 
 export function App() {
-  const { state, connected } = useLive((message: Extract<LiveMessage, { type: "audio" }>) => playSound(message.src, message.volume));
+  const { state, connected } = useLive((message: Extract<LiveMessage, { type: "audio" }>) => playSound(message.src, message.volume, message.urgent === true));
   const now = useNow(state.clockOffsetMs);
   const page = useRotation(state.config, state.scenes, now);
   const alarm = useRef(createAlarm());
@@ -38,6 +38,11 @@ export function App() {
     silenceSounds(Boolean(emergency));
     return () => silenceSounds(false);
   }, [Boolean(emergency)]);
+  // The read-out of the emergency itself is heard over the alarm: the alarm steps back while it speaks.
+  useEffect(() => {
+    onUrgentSound((speaking) => alarm.current.duck(speaking));
+    return () => onUrgentSound(() => undefined);
+  }, []);
   useEffect(() => {
     if (!emergency) return alarm.current.stop();
     const quiet = inWindow(state.audio.quietHours, new Date(Date.now() + state.clockOffsetMs));
