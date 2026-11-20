@@ -40,7 +40,7 @@ export function App() {
   useEffect(() => {
     if (!emergency) return alarm.current.stop();
     const quiet = inWindow(state.audio.quietHours, new Date(Date.now() + state.clockOffsetMs));
-    alarm.current.start(emergency.loud, alarmLevel(emergency, quiet));
+    alarm.current.start(emergency.kind, alarmLevel(emergency, quiet));
     return () => alarm.current.stop();
   }, [alarmKey]);
 

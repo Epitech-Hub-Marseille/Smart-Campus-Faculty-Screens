@@ -1,73 +1,66 @@
+import { ALARM_RATE, alarmCycle } from "./alarmSynth";
+
 /**
  * The alarm of an emergency, made in the browser so it works with the network down and cannot be tampered with in
- * transit (the same choice as the door units). A danger alarm is a siren; a power cut is a soft chime.
+ * transit (the same choice as the door units). Each kind of emergency has its own pattern (see `alarmSynth.ts`), drawn
+ * once and looped.
  */
 export interface Alarm {
-  start(loud: boolean, level: number): void;
+  start(kind: string, level: number): void;
   stop(): void;
 }
 
+/** A browser that does not allow sound without a touch (the kiosk is started so that it does) starts the sound suspended: any touch lets it through. */
+const GESTURES = ["pointerdown", "keydown", "touchstart", "click"] as const;
+const RESUME_EVERY_MS = 500;
+
 export function createAlarm(makeContext: () => AudioContext = () => new AudioContext()): Alarm {
   let ctx: AudioContext | null = null;
-  let stopFn: (() => void) | null = null;
+  let source: AudioBufferSourceNode | null = null;
+  let release: (() => void) | null = null;
 
   return {
-    start(loud, level) {
+    start(kind, level) {
       this.stop();
       if (level <= 0) return;
       try {
         ctx = makeContext();
-        // A kiosk starts with autoplay allowed; a normal browser needs a gesture, which is fine for development.
-        void ctx.resume().catch(() => undefined);
+        // A kiosk starts with autoplay allowed. In a normal browser the context stays suspended, and so the alarm silent, until the
+        // page has been touched: it is asked again every half second and at every touch for as long as the alarm lasts.
+        const context = ctx;
+        const wake = () => context.state === "suspended" && void context.resume().catch(() => undefined);
+        wake();
+        const timer = setInterval(wake, RESUME_EVERY_MS);
+        for (const type of GESTURES) window.addEventListener(type, wake, true);
+        release = () => {
+          clearInterval(timer);
+          for (const type of GESTURES) window.removeEventListener(type, wake, true);
+        };
+        const samples = alarmCycle(kind);
+        const buffer = ctx.createBuffer(1, samples.length, ALARM_RATE);
+        buffer.copyToChannel(samples, 0);
         const master = ctx.createGain();
         master.gain.value = Math.min(1, level);
         master.connect(ctx.destination);
-
-        if (loud) {
-          const osc = ctx.createOscillator();
-          osc.type = "sawtooth";
-          const sweep = ctx.createOscillator();
-          const depth = ctx.createGain();
-          sweep.frequency.value = 0.9; // about one whoop a second
-          depth.gain.value = 230;
-          osc.frequency.value = 820;
-          sweep.connect(depth).connect(osc.frequency);
-          const tone = ctx.createGain();
-          tone.gain.value = 0.55;
-          osc.connect(tone).connect(master);
-          osc.start();
-          sweep.start();
-          stopFn = () => (osc.stop(), sweep.stop());
-        } else {
-          const osc = ctx.createOscillator();
-          osc.type = "sine";
-          osc.frequency.value = 660;
-          const pulse = ctx.createGain();
-          pulse.gain.value = 0;
-          osc.connect(pulse).connect(master);
-          osc.start();
-          // A short chime every two seconds.
-          const id = setInterval(() => {
-            const t = ctx!.currentTime;
-            pulse.gain.cancelScheduledValues(t);
-            pulse.gain.setValueAtTime(0, t);
-            pulse.gain.linearRampToValueAtTime(0.8, t + 0.05);
-            pulse.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
-          }, 2_000);
-          stopFn = () => (clearInterval(id), osc.stop());
-        }
+        source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.loop = true;
+        source.connect(master);
+        source.start();
       } catch {
         // No audio output: the screen is still a screen.
       }
     },
     stop() {
+      release?.();
+      release = null;
       try {
-        stopFn?.();
+        source?.stop();
         void ctx?.close();
       } catch {
         // already stopped
       }
-      stopFn = null;
+      source = null;
       ctx = null;
     },
   };
