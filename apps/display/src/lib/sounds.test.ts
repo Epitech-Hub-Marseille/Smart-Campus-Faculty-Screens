@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { onUrgentSound, playSound, silenceSounds } from "./sounds";
+import { BLOCKED_SOUND_MAX_AGE_MS, onUrgentSound, playSound, setBlocked, silenceSounds, soundBlocked, subscribeBlocked } from "./sounds";
 
 const created: { listeners: Record<string, () => void>; src: string; pause: ReturnType<typeof vi.fn>; play: ReturnType<typeof vi.fn>; volume: number }[] = [];
 
@@ -80,5 +80,59 @@ describe("sounds", () => {
     await Promise.resolve();
     await Promise.resolve();
     expect(calls).toEqual([true, false]);
+  });
+
+  describe("a browser that has not been touched", () => {
+    const refuse = () =>
+      vi.stubGlobal(
+        "Audio",
+        class {
+          src: string;
+          volume = 1;
+          pause = vi.fn();
+          listeners: Record<string, () => void> = {};
+          addEventListener = (t: string, f: () => void) => void (this.listeners[t] = f);
+          play = vi.fn(() => (created.length > 1 ? Promise.resolve() : Promise.reject(Object.assign(new Error("blocked"), { name: "NotAllowedError" }))));
+          constructor(src: string) {
+            this.src = src;
+            created.push(this as never);
+          }
+        },
+      );
+
+    afterEach(() => {
+      window.dispatchEvent(new Event("pointerdown"));
+      setBlocked("alarm", false);
+      vi.useRealTimers();
+    });
+
+    it("says so, and plays the read-out it refused at the first touch", async () => {
+      refuse();
+      const seen: boolean[] = [];
+      const off = subscribeBlocked(() => seen.push(soundBlocked()));
+      playSound("/voice.wav", 100, true);
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(soundBlocked()).toBe(true);
+      expect(created).toHaveLength(1);
+      window.dispatchEvent(new Event("pointerdown"));
+      expect(soundBlocked()).toBe(false);
+      expect(created.map((a) => a.src)).toEqual(["/voice.wav", "/voice.wav"]);
+      expect(seen).toEqual([true, false]);
+      off();
+    });
+
+    it("drops a sound that waited too long for a touch, and says so while the alarm is blocked too", async () => {
+      vi.useFakeTimers();
+      refuse();
+      playSound("/old.wav", 100, true);
+      await Promise.resolve();
+      await Promise.resolve();
+      vi.advanceTimersByTime(BLOCKED_SOUND_MAX_AGE_MS + 1);
+      setBlocked("alarm", true);
+      window.dispatchEvent(new Event("pointerdown"));
+      expect(created).toHaveLength(1);
+      expect(soundBlocked()).toBe(true); // the alarm is still waiting for its own touch
+    });
   });
 });

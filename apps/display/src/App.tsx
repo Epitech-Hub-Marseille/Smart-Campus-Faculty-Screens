@@ -1,5 +1,5 @@
-import { WifiOff } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { VolumeX, WifiOff } from "lucide-react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { showsBoard, visibleEndNotice, type LiveMessage } from "@smartcampus/faculty-local";
 import { EmergencyScreen } from "./components/Emergency";
 import { EndNotice } from "./components/EndNotice";
@@ -9,7 +9,7 @@ import { Header } from "./components/Header";
 import { Scene } from "./components/Scene";
 import { alarmLevel, createAlarm } from "./lib/alarm";
 import { SilenceProvider } from "./lib/silence";
-import { onUrgentSound, playSound, silenceSounds } from "./lib/sounds";
+import { onUrgentSound, playSound, silenceSounds, soundBlocked, subscribeBlocked } from "./lib/sounds";
 import { useLive } from "./lib/useLive";
 import { useNow } from "./lib/useNow";
 import { useRotation } from "./lib/useRotation";
@@ -22,7 +22,26 @@ const inWindow = (w: { enabled: boolean; from: string; to: string }, at: Date) =
   return t(w.from) <= t(w.to) ? m >= t(w.from) && m < t(w.to) : m >= t(w.from) || m < t(w.to);
 };
 
+/** Said on the screen when the browser keeps sound from it, so a silent alarm is never a mystery. The kiosk is never in that state. */
+function SoundNotice() {
+  const blocked = useSyncExternalStore(subscribeBlocked, soundBlocked);
+  return blocked ? (
+    <div className="sound-notice" role="alert">
+      <VolumeX aria-hidden /> Sound is blocked by the browser. Touch the screen to turn it on.
+    </div>
+  ) : null;
+}
+
 export function App() {
+  return (
+    <>
+      <Screen />
+      <SoundNotice />
+    </>
+  );
+}
+
+function Screen() {
   const { state, connected } = useLive((message: Extract<LiveMessage, { type: "audio" }>) => playSound(message.src, message.volume, message.urgent === true));
   const now = useNow(state.clockOffsetMs);
   const page = useRotation(state.config, state.scenes, now);

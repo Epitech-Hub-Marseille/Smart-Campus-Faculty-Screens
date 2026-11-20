@@ -1,4 +1,5 @@
 import { ALARM_RATE, alarmCycle } from "./alarmSynth";
+import { setBlocked } from "./sounds";
 
 /**
  * The alarm of an emergency, made in the browser so it works with the network down and cannot be tampered with in
@@ -47,11 +48,16 @@ export function createAlarm(makeContext: () => AudioContext = () => new AudioCon
         // A kiosk starts with autoplay allowed. In a normal browser the context stays suspended, and so the alarm silent, until the
         // page has been touched: it is asked again every half second and at every touch for as long as the alarm lasts.
         const context = ctx;
-        const wake = () => context.state === "suspended" && void context.resume().catch(() => undefined);
+        const wake = () => {
+          if (context.state === "suspended") void context.resume().catch(() => undefined);
+          // The page tells whoever is in front of it that the browser is keeping the alarm silent.
+          setBlocked("alarm", context.state === "suspended");
+        };
         wake();
         const timer = setInterval(wake, RESUME_EVERY_MS);
         for (const type of GESTURES) window.addEventListener(type, wake, true);
         release = () => {
+          setBlocked("alarm", false);
           clearInterval(timer);
           for (const type of GESTURES) window.removeEventListener(type, wake, true);
         };
