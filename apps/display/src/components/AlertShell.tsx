@@ -6,7 +6,10 @@ const HEIGHT = 820;
 /** On a bigger screen it keeps its design size: the screen behind it stays recognisable around it. */
 const MAX_SCALE = 1;
 
-const fit = () => Math.min(MAX_SCALE, window.innerWidth / WIDTH, window.innerHeight / HEIGHT);
+/** The window is drawn 18% smaller than the size it fits to, so more of the screen behind shows around it. */
+const SIZE = 0.82;
+
+const fit = () => SIZE * Math.min(MAX_SCALE, window.innerWidth / WIDTH, window.innerHeight / HEIGHT);
 
 /**
  * The layer an alert lives in: dims and very lightly blurs whatever is behind it (never more than 3px, so the screen is still
