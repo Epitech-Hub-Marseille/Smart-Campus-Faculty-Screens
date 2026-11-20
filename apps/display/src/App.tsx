@@ -72,17 +72,15 @@ export function App() {
 
   // An alert opens over the normal screen, which stays visible but blurred behind it, instead of replacing it.
   if (emergency) {
-    const plain = <EmergencyScreen emergency={emergency} config={state.config} now={now} />;
+    const plain = <EmergencyScreen emergency={emergency} config={state.config} />;
     return (
       <>
         <div className="alert-backdrop" aria-hidden inert>
           {screen}
         </div>
-        <div className="alert-overlay">
-          <FallbackBoundary key={emergency.emergencyId} fallback={plain}>
-            <EmergencyScreen emergency={emergency} config={state.config} now={now} theme={state.theme} />
-          </FallbackBoundary>
-        </div>
+        <FallbackBoundary key={emergency.emergencyId} fallback={plain}>
+          <EmergencyScreen emergency={emergency} config={state.config} theme={state.theme} />
+        </FallbackBoundary>
       </>
     );
   }

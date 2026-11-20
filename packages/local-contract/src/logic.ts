@@ -171,6 +171,29 @@ export function emergencyPresentation(kind: string, assemblyPoint: string): Emer
   }
 }
 
+/** Kinds of alert where people stay inside and wait; for the others they leave and are told not to go back in. */
+const STAY_INSIDE = new Set(["biohazard", "nuclear", "power"]);
+
+/**
+ * The five lines of the alert, always five and each short enough for one line: the three actions of the kind, what to do
+ * until it is over, and a closing line (a plain one for a test, so nobody acts on it).
+ */
+export function emergencySteps(kind: string, assemblyPoint: string, testMode: boolean): string[] {
+  const { actions } = emergencyPresentation(kind, assemblyPoint);
+  const untilOver = STAY_INSIDE.has(kind) ? "Wait for staff to give the all clear." : "Do not re-enter until staff allow it.";
+  const closing = testMode ? "This is a test. No action is needed." : "Follow staff. Help others if it is safe.";
+  return [...actions.map((a) => `${a.title}. ${a.detail}`), untilOver, closing];
+}
+
+/**
+ * A font size that keeps one line of monospace text inside `width` pixels: the most it may be, or smaller when the text
+ * is long. A monospace character is 0.6 em wide, plus the letter spacing.
+ */
+export function fitFontSize(text: string, width: number, max: number, letterSpacingEm = 0.06): number {
+  const perCharacter = 0.6 + letterSpacingEm;
+  return Math.max(16, Math.min(max, Math.floor(width / (Math.max(1, text.length) * perCharacter))));
+}
+
 // ---- Themes ----------------------------------------------------------------------------------
 
 /** Font stacks of the theme's font families. Only fonts bundled with the page or present on every system: a kiosk has no network. */
