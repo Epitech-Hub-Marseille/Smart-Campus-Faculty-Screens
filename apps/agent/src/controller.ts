@@ -199,7 +199,7 @@ export class Controller {
   }
 
   private async playAudio(message: Extract<ServerMessage, { type: "audio.play" }>): Promise<void> {
-    const { announcementId, assetId, sha256, size, urgent } = message.payload;
+    const { announcementId, assetId, sha256, size, urgent, emergencyId } = message.payload;
     const quiet = inQuietHours(this.state.audio.quietHours, new Date(this.clock() + this.state.clockOffsetMs));
     if (quiet && !urgent) {
       // Acknowledged on purpose: the server must not replay a broadcast we deliberately stayed silent for.
@@ -212,7 +212,7 @@ export class Controller {
       this.remember(message.id);
       this.ack(message.id);
       // An urgent read-out is heard at full volume, like the alarm.
-      this.deps.publish({ type: "audio", id: announcementId, src: `/audio/${name}`, volume: urgent ? 100 : this.state.audio.volume, ...(urgent && { urgent: true }) });
+      this.deps.publish({ type: "audio", id: announcementId, src: `/audio/${name}`, volume: urgent ? 100 : this.state.audio.volume, ...((urgent || emergencyId) && { urgent: true }) });
     } catch (err) {
       this.remember(message.id);
       this.sink?.send("nack", nackPayload(message.id, `download failed: ${errorMessage(err)}`));
