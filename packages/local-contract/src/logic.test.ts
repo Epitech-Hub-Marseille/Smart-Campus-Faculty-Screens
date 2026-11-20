@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FONT_STACKS, emergencyFontFaces, emergencyVariables, themeFontFaces, themeVariables, activeScenes, boardEvents, effectiveStaff, emergencyPresentation, FALLBACK_SCENES, rotation, roomRows, showsBoard, visibleAnnouncements, visibleEndNotice } from "./logic.js";
+import { FONT_STACKS, emergencyFontFaces, emergencyVariables, themeFontFaces, themeVariables, activeScenes, boardEvents, effectiveStaff, emergencyPresentation, emergencySteps, fitFontSize, FALLBACK_SCENES, rotation, roomRows, showsBoard, visibleAnnouncements, visibleEndNotice } from "./logic.js";
 import { KNOWN_TILE_KINDS, SCENE_LAYOUTS, type ReservationView, type SceneView, type StaffView, type ThemeView } from "./view.js";
 
 const noon = new Date(2026, 10, 6, 12, 0, 0).getTime();
@@ -187,5 +187,24 @@ describe("emergencyVariables", () => {
   it("uses no font when the theme does not say so, or the slot has no file", () => {
     expect(emergencyVariables({ ...base, emergency: { fonts: false, frame: "stripes", colors: {}, radius: 4 } })["--em-font-body"]).toBeUndefined();
     expect(emergencyVariables({ ...base, fonts: {}, emergency: { fonts: true, frame: "stripes", colors: {}, radius: 4 } })["--em-font-heading"]).toBeUndefined();
+  });
+});
+
+describe("emergencySteps", () => {
+  it("is always five lines: the three actions, what to do until it is over, and a closing line", () => {
+    for (const kind of ["fire", "biohazard", "nuclear", "bomb", "seismic", "power"]) expect(emergencySteps(kind, "Car park A", false)).toHaveLength(5);
+    expect(emergencySteps("fire", "", false)[3]).toBe("Do not re-enter until staff allow it.");
+    expect(emergencySteps("biohazard", "", false)[3]).toBe("Wait for staff to give the all clear.");
+    expect(emergencySteps("fire", "", true)[4]).toBe("This is a test. No action is needed.");
+  });
+});
+
+describe("fitFontSize", () => {
+  it("keeps the most for short text and shrinks long text to fit the width", () => {
+    expect(fitFontSize("FIRE ALERT", 884, 104)).toBe(104);
+    const long = fitFontSize("BIOHAZARD CONTAINMENT ALERT", 884, 104);
+    expect(long).toBeLessThan(104);
+    expect(27 * long * 0.66).toBeLessThanOrEqual(884);
+    expect(fitFontSize("x".repeat(500), 884, 104)).toBe(16);
   });
 });

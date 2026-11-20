@@ -8,6 +8,8 @@ import { Enrolling } from "./components/Enrolling";
 import { Header } from "./components/Header";
 import { Scene } from "./components/Scene";
 import { alarmLevel, createAlarm } from "./lib/alarm";
+import { SilenceProvider } from "./lib/silence";
+import { playSound, silenceSounds } from "./lib/sounds";
 import { useLive } from "./lib/useLive";
 import { useNow } from "./lib/useNow";
 import { useRotation } from "./lib/useRotation";
@@ -20,14 +22,8 @@ const inWindow = (w: { enabled: boolean; from: string; to: string }, at: Date) =
   return t(w.from) <= t(w.to) ? m >= t(w.from) && m < t(w.to) : m >= t(w.from) || m < t(w.to);
 };
 
-function playSound(message: Extract<LiveMessage, { type: "audio" }>) {
-  const audio = new Audio(message.src);
-  audio.volume = Math.min(1, Math.max(0, message.volume / 100));
-  void audio.play().catch(() => undefined);
-}
-
 export function App() {
-  const { state, connected } = useLive(playSound);
+  const { state, connected } = useLive((message: Extract<LiveMessage, { type: "audio" }>) => playSound(message.src, message.volume));
   const now = useNow(state.clockOffsetMs);
   const page = useRotation(state.config, state.scenes, now);
   const alarm = useRef(createAlarm());
@@ -37,10 +33,15 @@ export function App() {
   // The alarm follows the emergency: it starts when one appears and stops when it ends.
   const emergency = state.emergency;
   const alarmKey = emergency ? `${emergency.emergencyId}:${emergency.testMode}:${emergency.testVolume}` : "";
+  // Nothing else may make a sound while it does: what plays stops, and nothing starts (see `lib/silence.tsx` for the tiles).
+  useEffect(() => {
+    silenceSounds(Boolean(emergency));
+    return () => silenceSounds(false);
+  }, [Boolean(emergency)]);
   useEffect(() => {
     if (!emergency) return alarm.current.stop();
     const quiet = inWindow(state.audio.quietHours, new Date(Date.now() + state.clockOffsetMs));
-    alarm.current.start(emergency.loud, alarmLevel(emergency, quiet));
+    alarm.current.start(emergency.kind, alarmLevel(emergency, quiet));
     return () => alarm.current.stop();
   }, [alarmKey]);
 
@@ -72,17 +73,15 @@ export function App() {
 
   // An alert opens over the normal screen, which stays visible but blurred behind it, instead of replacing it.
   if (emergency) {
-    const plain = <EmergencyScreen emergency={emergency} config={state.config} now={now} />;
+    const plain = <EmergencyScreen emergency={emergency} config={state.config} />;
     return (
       <>
         <div className="alert-backdrop" aria-hidden inert>
-          {screen}
+          <SilenceProvider value>{screen}</SilenceProvider>
         </div>
-        <div className="alert-overlay">
-          <FallbackBoundary key={emergency.emergencyId} fallback={plain}>
-            <EmergencyScreen emergency={emergency} config={state.config} now={now} theme={state.theme} />
-          </FallbackBoundary>
-        </div>
+        <FallbackBoundary key={emergency.emergencyId} fallback={plain}>
+          <EmergencyScreen emergency={emergency} config={state.config} theme={state.theme} />
+        </FallbackBoundary>
       </>
     );
   }

@@ -2,6 +2,7 @@ import { Radio, VideoOff } from "lucide-react";
 import Hls from "hls.js";
 import { useEffect, useRef, useState } from "react";
 import type { TileView } from "@smartcampus/faculty-local";
+import { useSilenced } from "../../lib/silence";
 
 const text = (v: unknown) => (typeof v === "string" ? v : "");
 const isHttp = (u: string) => /^https?:\/\//i.test(u);
@@ -81,7 +82,8 @@ export function StreamTile({ tile }: { tile: TileView }) {
   const url = text(tile.settings.url);
   const label = text(tile.settings.label);
   const format = detectFormat(url, tile.settings.format);
-  const muted = tile.settings.muted !== false;
+  const silenced = useSilenced();
+  const muted = silenced || tile.settings.muted !== false;
   const video = useRef<HTMLVideoElement>(null);
   const failed = useStream(video, url, format, isHttp(url) && format !== "mjpeg");
   const [imgFailed, setImgFailed] = useState(false);
@@ -113,14 +115,16 @@ export function StreamTile({ tile }: { tile: TileView }) {
 export function RadioTile({ tile }: { tile: TileView }) {
   const url = text(tile.settings.url);
   const label = text(tile.settings.label) || "Live radio";
-  const muted = tile.settings.muted === true;
+  const silenced = useSilenced();
+  const muted = silenced || tile.settings.muted === true;
   const audio = useRef<HTMLAudioElement>(null);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     const el = audio.current;
-    if (!el || !isHttp(url)) return;
+    // While an alarm sounds the stream is not even loaded: it must be silent, and a muted stream would only use the network.
+    if (!el || !isHttp(url) || silenced) return;
     setFailed(false);
     el.src = url;
     play(el);
@@ -141,7 +145,7 @@ export function RadioTile({ tile }: { tile: TileView }) {
       el.removeAttribute("src");
       el.load();
     };
-  }, [url, attempt]);
+  }, [url, attempt, silenced]);
 
   if (!isHttp(url)) return null;
   return (
@@ -159,8 +163,10 @@ export function RadioTile({ tile }: { tile: TileView }) {
  * and a sandbox keeps it from reaching the screen's page.
  */
 export function YoutubeTile({ tile }: { tile: TileView }) {
+  const silenced = useSilenced();
   const id = text(tile.settings.video);
-  if (!/^[\w-]{11}$/.test(id)) return null;
+  // Its sound cannot be reached from here, so while an alarm sounds the frame is not drawn.
+  if (silenced || !/^[\w-]{11}$/.test(id)) return null;
   const muted = tile.settings.muted !== false;
   const params = new URLSearchParams({ autoplay: "1", mute: muted ? "1" : "0", controls: "0", rel: "0", modestbranding: "1", playsinline: "1", loop: "1", playlist: id });
   return (

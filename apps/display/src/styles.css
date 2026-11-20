@@ -533,22 +533,74 @@ td.room-for {
 
 /* ---- emergency and end of emergency ---- */
 /*
- * A bulletin in the style of a terminal: bold monospace, white double frame, yellow on the colour of the kind of alert. Each
- * kind has a dark background that white and yellow text read on. A theme may replace the background (dark only, checked by the
- * agent), the fonts, the corners and the frame band through the --em-* variables; nothing else changes.
+ * A bulletin in the style of a terminal, in a window over the screen it interrupts: bold monospace capitals, a white frame,
+ * yellow on red (or the dark colour of the kind of alert). It is drawn at 1280x820 and scaled down to fit, never reflowed. A
+ * theme may replace the background (dark only, checked by the agent), the fonts, the corners and the frame band through the
+ * --em-* variables; nothing else changes. All the motion is here, in CSS: blinks are hard on/off steps, never fades.
  */
+@keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes stripes {
+  from { background-position: 0 0; }
+  to { background-position: 64px 0; }
+}
+@keyframes stepBar {
+  0% { background-color: #fff; color: var(--bg); }
+  20% { background-color: transparent; color: #fff; }
+  100% { background-color: transparent; color: #fff; }
+}
+@keyframes stepChev {
+  0% { color: var(--bg); }
+  20% { color: #ff5; }
+  100% { color: #ff5; }
+}
+
+/* The layer: the screen behind is dimmed and barely blurred (3px at most), the window on it is not. */
+.alert-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  overflow: hidden;
+  background: rgba(24, 0, 0, 0.42);
+  backdrop-filter: blur(2.5px);
+}
+/* With no screen behind it (the end of an alert) the layer is just dark. */
+.alert-overlay.solo {
+  background: #140000;
+  backdrop-filter: none;
+}
+
+.alert-backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+}
+
 .emergency,
 .end-notice {
   --yellow: #ffff55;
-  --kind: #a80000;
+  --kind: #aa0000;
   --bg: var(--em-solid, var(--kind));
-  display: flex;
-  height: 100%;
-  padding: 2.5rem 4rem;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  box-sizing: border-box;
+  width: 1280px;
+  height: 820px;
+  padding: 14px;
+  /* A transform does not shrink the layout box, so the window is placed by its middle and scaled from there. */
+  transform: translate(-50%, -50%) scale(var(--fit, 1));
   background: var(--bg);
+  box-shadow: 24px 24px 0 rgba(0, 0, 0, 0.5);
   color: #fff;
-  font-family: var(--em-font-body, ui-monospace, "DejaVu Sans Mono", "Liberation Mono", "Courier New", monospace);
-  font-weight: 700;
+  font-family: var(--em-font-body, "IBM Plex Mono", ui-monospace, "DejaVu Sans Mono", "Liberation Mono", "Courier New", monospace);
+  font-weight: 600;
+  text-transform: uppercase;
 }
 
 .emergency[data-kind="biohazard"] { --kind: #1f5f1f; }
@@ -558,183 +610,200 @@ td.room-for {
 .emergency[data-kind="power"] { --kind: #0a3d8a; }
 .end-notice { --kind: #0a5a1f; }
 
-/* The double white line: an outer border and, inside a band of the background colour, a second one. */
 .alert-frame {
+  box-sizing: border-box;
   display: flex;
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
+  height: 100%;
   flex-direction: column;
-  gap: 1.4rem;
-  padding: 1.8rem 2.2rem 1.2rem;
-  border: 0.3rem solid #fff;
+  gap: 12px;
+  padding: 22px 40px 0;
+  border: 4px solid #fff;
   border-radius: var(--em-radius, 0);
-  box-shadow: inset 0 0 0 0.5rem var(--bg), inset 0 0 0 0.7rem #fff;
   overflow: hidden;
 }
 
 .alert-head {
   display: flex;
+  flex: none;
   justify-content: space-between;
-  gap: 2rem;
-  padding: 0.5rem 1.2rem;
+  padding: 0 20px;
   background: #fff;
   color: var(--bg);
-  font-size: 1.8rem;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 46px;
   letter-spacing: 0.06em;
   border-radius: var(--em-radius, 0);
 }
 
 .alert-title {
   display: flex;
+  flex: none;
   align-items: center;
   justify-content: center;
-  gap: 2.4rem;
-}
-
-.alert-title svg {
-  width: 7.5rem;
-  height: 7.5rem;
-  color: #000;
-  fill: var(--yellow);
-  stroke-width: 1.6;
+  gap: 48px;
+  margin-top: 6px;
 }
 
 .alert-title h1 {
   font-family: var(--em-font-heading, inherit);
-  font-size: 8.2rem;
-  line-height: 1;
+  font-size: 104px;
+  font-weight: 700;
+  line-height: 100px;
   letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: var(--yellow);
+  white-space: nowrap;
+}
+
+.triangle {
+  flex: none;
+  animation: blink 1s steps(1, end) infinite;
+}
+/* The second triangle blinks when the first is off. */
+.triangle.right {
+  animation-delay: -0.5s;
 }
 
 .alert-detail {
+  flex: none;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
   text-align: center;
-  font-size: 2.9rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 38px;
+  line-height: 44px;
+  letter-spacing: 0.04em;
 }
 
 .alert-call {
+  display: flex;
+  flex: none;
   align-self: center;
-  padding: 0.6rem 2.4rem;
+  align-items: center;
+  gap: 22px;
+  padding: 0 28px;
   background: #fff;
   color: var(--bg);
-  font-size: 3.6rem;
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 64px;
   letter-spacing: 0.06em;
-  text-transform: uppercase;
+  white-space: nowrap;
   border-radius: var(--em-radius, 0);
+}
+/* Opacity, not display, so the layout never shifts. */
+.alert-call .blink {
+  animation: blink 1s steps(1, end) infinite;
+}
+
+.alert-rule {
+  flex: none;
+  width: 100%;
+  margin: 4px 0;
+  border: 0;
+  border-top: 3px dashed rgba(255, 255, 255, 0.7);
 }
 
 .steps {
-  flex: 1;
-  min-height: 0;
+  flex: none;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 6px;
   margin: 0;
-  padding: 1.2rem 0 0;
-  border-top: 0.2rem dashed #fff;
+  padding: 0;
   background: var(--em-card, transparent);
   list-style: none;
-  font-size: 2.5rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  overflow: hidden;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 44px;
+  letter-spacing: 0.02em;
 }
 
+/* Each line takes its turn to be the one to do now: reversed for 0.8 s, then plain, five lines in 4 s. */
 .steps li {
-  padding: 0.2rem 1.2rem;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  white-space: nowrap;
+  background-color: transparent;
+  color: #fff;
   border-radius: var(--em-radius, 0);
+  animation: stepBar 4s steps(1, end) infinite;
 }
-
-.steps li span {
-  color: var(--yellow);
+.steps .chev {
+  flex: none;
+  width: 68px;
+  color: #ff5;
+  animation: stepChev 4s steps(1, end) infinite;
 }
-
-/* The current step is the one to do now: reversed. The highlight cycles through the list. */
-.steps li.current {
-  background: #fff;
-  color: var(--bg);
-}
-
-.steps li.current span {
-  color: inherit;
-}
+.steps li:nth-child(1), .steps li:nth-child(1) .chev { animation-delay: 0s; }
+.steps li:nth-child(2), .steps li:nth-child(2) .chev { animation-delay: -3.2s; }
+.steps li:nth-child(3), .steps li:nth-child(3) .chev { animation-delay: -2.4s; }
+.steps li:nth-child(4), .steps li:nth-child(4) .chev { animation-delay: -1.6s; }
+.steps li:nth-child(5), .steps li:nth-child(5) .chev { animation-delay: -0.8s; }
 
 .alert-foot {
   display: flex;
-  justify-content: space-between;
+  flex: none;
   align-items: center;
-  padding: 0.7rem 1.6rem;
+  justify-content: space-between;
+  /* Pinned to the bottom: the free height goes above it. */
+  margin-top: auto;
+  height: 68px;
+  padding: 0 24px;
   background: var(--yellow);
   color: #000;
-  font-size: 3rem;
+  font-size: 30px;
+  font-weight: 700;
   letter-spacing: 0.06em;
-  text-transform: uppercase;
   border-radius: var(--em-radius, 0);
+}
+.alert-foot strong {
+  font-size: 46px;
+  font-weight: 700;
 }
 
 .stripes {
   flex: none;
-  height: 5rem;
-  margin: 0 -1.2rem;
-  background: repeating-linear-gradient(45deg, var(--yellow) 0 2.4rem, #000 2.4rem 4.8rem);
+  height: 48px;
+  margin: 0 -40px;
+  background: linear-gradient(45deg, #ffff55 25%, #000 25%, #000 50%, #ffff55 50%, #ffff55 75%, #000 75%);
+  background-size: 64px 64px;
+  animation: stripes 2s linear infinite;
 }
 
 /* A theme's plain frame: a solid yellow band instead of the hazard stripes. */
 .frame-bar .stripes {
-  height: 2.2rem;
+  height: 22px;
   background: var(--yellow);
+  animation: none;
 }
 
-/*
- * An alert is a window over the screen, not a takeover: the normal screen stays behind it, blurred and dimmed. The bulletin is
- * drawn at full size and scaled down, so its layout is the one that is tested; the extra height gives the steps more room.
- */
-.alert-backdrop {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  filter: blur(0.5rem) brightness(0.8);
-  pointer-events: none;
-}
-
-.alert-overlay {
-  position: fixed;
-  inset: 0;
-  overflow: hidden;
-  background: rgba(0, 0, 0, 0.25);
-}
-
-.alert-overlay .emergency {
-  /* A transform does not shrink the layout box, so centre it by its middle instead of with the grid. */
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 100vw;
-  height: 128vh;
-  transform: translate(-50%, -50%) scale(0.68);
-  box-shadow: 2rem 2rem 0 rgba(0, 0, 0, 0.45);
-}
-
-/* The end of the alert uses the same bulletin: it needs no stripes and its message may be long. */
+/* The end of the alert: the same window, still, with a message that may be long. */
 .end-notice .alert-frame {
-  padding-bottom: 2.2rem;
   justify-content: center;
 }
-
+.end-notice .alert-head {
+  position: absolute;
+  top: 22px;
+  right: 40px;
+  left: 40px;
+}
+.end-notice .alert-title h1 {
+  color: var(--yellow);
+}
 .end-notice .alert-detail {
-  font-size: 3.4rem;
-  line-height: 1.3;
+  font-size: 38px;
+  line-height: 52px;
+  -webkit-line-clamp: 6;
   text-transform: none;
 }
 
-.end-notice .alert-title svg {
-  fill: none;
-  color: var(--yellow);
+@media (prefers-reduced-motion: reduce) {
+  .triangle, .alert-call .blink, .steps li, .steps .chev, .stripes {
+    animation: none;
+  }
 }
 
 /* ---- scenes and tiles ---- */
