@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { TileView } from "@smartcampus/faculty-local";
+import { useSilenced } from "../../lib/silence";
 
 const text = (v: unknown) => (typeof v === "string" ? v : "");
 const fitOf = (tile: TileView) => (tile.settings.fit === "cover" ? "cover" : "contain");
@@ -11,7 +12,8 @@ export function ImageTile({ tile }: { tile: TileView }) {
 
 /** A video of the library. It plays muted unless the tile says otherwise (the kiosk allows sound without a touch). */
 export function VideoTile({ tile }: { tile: TileView }) {
-  const muted = tile.settings.muted !== false;
+  const silenced = useSilenced();
+  const muted = silenced || tile.settings.muted !== false;
   const loop = tile.settings.loop !== false;
   return tile.src ? <video key={`${tile.id}:${tile.src}`} className={`tile-media ${fitOf(tile)}`} src={tile.src} autoPlay loop={loop} muted={muted} playsInline /> : null;
 }
@@ -26,6 +28,7 @@ export function TextTile({ tile }: { tile: TileView }) {
 
 /** A web page, reloaded on its own schedule so a live page stays live. */
 export function WebTile({ tile }: { tile: TileView }) {
+  const silenced = useSilenced();
   const url = text(tile.settings.url);
   const refresh = typeof tile.settings.refreshSeconds === "number" ? tile.settings.refreshSeconds : 0;
   const [reload, setReload] = useState(0);
@@ -34,7 +37,8 @@ export function WebTile({ tile }: { tile: TileView }) {
     const timer = setInterval(() => setReload((n) => n + 1), refresh * 1000);
     return () => clearInterval(timer);
   }, [refresh, url]);
-  if (!/^https?:\/\//i.test(url)) return null;
+  // A page's sound cannot be reached from here, so while an alarm sounds it is not drawn.
+  if (silenced || !/^https?:\/\//i.test(url)) return null;
   return (
     <iframe
       key={`${url}:${reload}`}

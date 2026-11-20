@@ -8,6 +8,7 @@ import { EndNotice } from "./EndNotice";
 import { Enrolling } from "./Enrolling";
 import { Header } from "./Header";
 import { Scene } from "./Scene";
+import { SilenceProvider } from "../lib/silence";
 import { detectFormat } from "./tiles/LiveTiles";
 import { StaffBoard } from "./StaffBoard";
 
@@ -282,5 +283,33 @@ describe("Scene", () => {
     const { container } = draw(scene("columns", [tile("hologram", { anything: true }), tile("text", { text: "still here" }, { id: "b" })]));
     expect(screen.getByText("still here")).toBeTruthy();
     expect(container.querySelector(".tile-unknown")?.childElementCount).toBe(0);
+  });
+});
+
+describe("while an alarm sounds", () => {
+  const tile = (kind: string, settings: Record<string, unknown> = {}, extra: Partial<TileView> = {}): TileView => ({ id: `${kind}-t`, kind, settings, ...extra });
+  const scene = (layout: string, tiles: TileView[]): SceneView => ({ id: "s", name: "s", layout, durationSeconds: 15, tiles });
+  const rendered = (kind: string, settings: Record<string, unknown>, extra: Record<string, unknown> = {}) =>
+    render(
+      <SilenceProvider value>
+        <Scene scene={scene("full", [tile(kind, settings, extra)])} state={state()} now={noon} />
+      </SilenceProvider>,
+    );
+
+  it("mutes a video that was set to play with sound, and a live stream", () => {
+    expect(rendered("video", { muted: false }, { src: "/media/V.mp4" }).container.querySelector("video")!.muted).toBe(true);
+    cleanup();
+    expect(rendered("stream", { url: "https://cam.example.org/live.mp4", muted: false }).container.querySelector("video")!.muted).toBe(true);
+  });
+
+  it("does not load a radio, and does not draw a YouTube frame or a web page, whose sound it cannot reach", () => {
+    const radio = rendered("radio", { url: "https://radio.example.org/live.mp3", muted: false });
+    expect(radio.container.querySelector("audio")!.muted).toBe(true);
+    expect(radio.container.querySelector("audio")!.getAttribute("src")).toBeNull();
+    expect(radio.getByText("Sound off")).toBeTruthy();
+    cleanup();
+    expect(rendered("youtube", { video: "dQw4w9WgXcQ", muted: false }).container.querySelector("iframe")).toBeNull();
+    cleanup();
+    expect(rendered("web", { url: "https://example.org/" }).container.querySelector("iframe")).toBeNull();
   });
 });
