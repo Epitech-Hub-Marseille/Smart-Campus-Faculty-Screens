@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { playSound, silenceSounds } from "./sounds";
+import { onUrgentSound, playSound, silenceSounds } from "./sounds";
 
-const created: { src: string; pause: ReturnType<typeof vi.fn>; play: ReturnType<typeof vi.fn>; volume: number }[] = [];
+const created: { listeners: Record<string, () => void>; src: string; pause: ReturnType<typeof vi.fn>; play: ReturnType<typeof vi.fn>; volume: number }[] = [];
 
 beforeEach(() => {
   created.length = 0;
@@ -13,7 +13,8 @@ beforeEach(() => {
       volume = 1;
       pause = vi.fn();
       play = vi.fn(() => Promise.resolve());
-      addEventListener = vi.fn();
+      listeners: Record<string, () => void> = {};
+      addEventListener = (type: string, fn: () => void) => void (this.listeners[type] = fn);
       constructor(src: string) {
         this.src = src;
         created.push(this as never);
@@ -21,7 +22,10 @@ beforeEach(() => {
     },
   );
 });
-afterEach(() => silenceSounds(false));
+afterEach(() => {
+  silenceSounds(false);
+  onUrgentSound(() => undefined);
+});
 
 describe("sounds", () => {
   it("plays at the volume asked, kept between 0 and 1", () => {
@@ -40,5 +44,41 @@ describe("sounds", () => {
     silenceSounds(false);
     playSound("/c.mp3", 80);
     expect(created).toHaveLength(2);
+  });
+
+  it("lets an urgent read-out through an alarm, and does not stop it when the alarm starts", () => {
+    silenceSounds(true);
+    playSound("/voice.wav", 100, true);
+    playSound("/radio.mp3", 80);
+    expect(created.map((a) => a.src)).toEqual(["/voice.wav"]);
+    silenceSounds(true);
+    expect(created[0]!.pause).not.toHaveBeenCalled();
+    created[0]!.listeners.ended!();
+  });
+
+  it("tells the alarm to step back for as long as a read-out plays, once for overlapping ones", () => {
+    const calls: boolean[] = [];
+    onUrgentSound((speaking) => calls.push(speaking));
+    playSound("/one.wav", 100, true);
+    playSound("/two.wav", 100, true);
+    expect(calls).toEqual([true]);
+    created[0]!.listeners.ended!();
+    expect(calls).toEqual([true]);
+    created[1]!.listeners.ended!();
+    created[1]!.listeners.error!();
+    expect(calls).toEqual([true, false]);
+  });
+
+  it("brings the alarm back when a read-out cannot play", async () => {
+    const calls: boolean[] = [];
+    onUrgentSound((speaking) => calls.push(speaking));
+    const Original = globalThis.Audio;
+    vi.stubGlobal("Audio", class extends (Original as never as new (s: string) => object) {
+      play = () => Promise.reject(new Error("blocked"));
+    });
+    playSound("/blocked.wav", 100, true);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(calls).toEqual([true, false]);
   });
 });

@@ -8,7 +8,15 @@ import { ALARM_RATE, alarmCycle } from "./alarmSynth";
 export interface Alarm {
   start(kind: string, level: number): void;
   stop(): void;
+  /** Steps the alarm back (quieter and muffled) so a voice can be understood over it, and brings it back. */
+  duck(on: boolean): void;
 }
+
+/** While a voice speaks the alarm is at a fifth of its level and loses everything above 700 Hz: still there, but no longer in the way. */
+export const DUCK_GAIN = 0.2;
+export const DUCK_CUTOFF_HZ = 700;
+const OPEN_CUTOFF_HZ = 20_000;
+const DUCK_SECONDS = 0.12;
 
 /** A browser that does not allow sound without a touch (the kiosk is started so that it does) starts the sound suspended: any touch lets it through. */
 const GESTURES = ["pointerdown", "keydown", "touchstart", "click"] as const;
@@ -18,6 +26,17 @@ export function createAlarm(makeContext: () => AudioContext = () => new AudioCon
   let ctx: AudioContext | null = null;
   let source: AudioBufferSourceNode | null = null;
   let release: (() => void) | null = null;
+  let master: GainNode | null = null;
+  let muffle: BiquadFilterNode | null = null;
+  let base = 0;
+  let ducked = false;
+
+  const applyDuck = () => {
+    if (!ctx || !master || !muffle) return;
+    const now = ctx.currentTime;
+    master.gain.setTargetAtTime(ducked ? base * DUCK_GAIN : base, now, DUCK_SECONDS);
+    muffle.frequency.setTargetAtTime(ducked ? DUCK_CUTOFF_HZ : OPEN_CUTOFF_HZ, now, DUCK_SECONDS);
+  };
 
   return {
     start(kind, level) {
@@ -39,14 +58,21 @@ export function createAlarm(makeContext: () => AudioContext = () => new AudioCon
         const samples = alarmCycle(kind);
         const buffer = ctx.createBuffer(1, samples.length, ALARM_RATE);
         buffer.copyToChannel(samples, 0);
-        const master = ctx.createGain();
-        master.gain.value = Math.min(1, level);
-        master.connect(ctx.destination);
+        base = Math.min(1, level);
+        master = ctx.createGain();
+        muffle = ctx.createBiquadFilter();
+        muffle.type = "lowpass";
+        muffle.frequency.value = OPEN_CUTOFF_HZ;
+        master.gain.value = base;
+        master.connect(muffle);
+        muffle.connect(ctx.destination);
         source = ctx.createBufferSource();
         source.buffer = buffer;
         source.loop = true;
         source.connect(master);
         source.start();
+        // A voice may already be speaking when the alarm starts.
+        if (ducked) applyDuck();
       } catch {
         // No audio output: the screen is still a screen.
       }
@@ -61,7 +87,13 @@ export function createAlarm(makeContext: () => AudioContext = () => new AudioCon
         // already stopped
       }
       source = null;
+      master = null;
+      muffle = null;
       ctx = null;
+    },
+    duck(on) {
+      ducked = on;
+      applyDuck();
     },
   };
 }

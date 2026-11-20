@@ -333,7 +333,7 @@ describe("audio", () => {
 
     const urgent = gateway.send("audio.play", play({ announcementId: "n2", urgent: true }));
     await until(() => gateway.acksFor(urgent) === 1);
-    expect(a.published.filter((m) => m.type === "audio")).toEqual([{ type: "audio", id: "n2", src: "/audio/SOUND1.wav", volume: 100 }]);
+    expect(a.published.filter((m) => m.type === "audio")).toEqual([{ type: "audio", id: "n2", src: "/audio/SOUND1.wav", volume: 100, urgent: true }]);
   });
 
   it("refuses a sound that is not what was announced", async () => {
