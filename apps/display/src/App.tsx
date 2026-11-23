@@ -10,6 +10,7 @@ import { Scene } from "./components/Scene";
 import { alarmLevel, createAlarm } from "./lib/alarm";
 import { SilenceProvider } from "./lib/silence";
 import { onUrgentSound, playSound, silenceSounds, soundBlocked, subscribeBlocked } from "./lib/sounds";
+import { createLivePlayer } from "./lib/liveVoice";
 import { useLive } from "./lib/useLive";
 import { useNow } from "./lib/useNow";
 import { useRotation } from "./lib/useRotation";
@@ -42,10 +43,26 @@ export function App() {
 }
 
 function Screen() {
-  const { state, connected } = useLive((message: Extract<LiveMessage, { type: "audio" }>) => playSound(message.src, message.volume, message.urgent === true));
+  const alarm = useRef(createAlarm());
+  // Whoever is speaking (an emergency read-out or a live announcement) is heard over the alarm, which steps back meanwhile.
+  const speakers = useRef(new Set<string>());
+  const duckFor = (who: string, speaking: boolean) => {
+    if (speaking) speakers.current.add(who);
+    else speakers.current.delete(who);
+    alarm.current.duck(speakers.current.size > 0);
+  };
+  const livePlayer = useRef<ReturnType<typeof createLivePlayer> | undefined>(undefined);
+  livePlayer.current ??= createLivePlayer((speaking) => duckFor("live", speaking));
+  const { state, connected } = useLive(
+    (message: Extract<LiveMessage, { type: "audio" }>) => playSound(message.src, message.volume, message.urgent === true),
+    (message) => {
+      if (message.event === "start") livePlayer.current!.start(message.streamId);
+      else if (message.event === "chunk") livePlayer.current!.chunk(message.streamId, message.data);
+      else livePlayer.current!.end(message.streamId);
+    },
+  );
   const now = useNow(state.clockOffsetMs);
   const page = useRotation(state.config, state.scenes, now);
-  const alarm = useRef(createAlarm());
   // While an emergency or its end notice is on screen the theme is off, except what it says about alerts (fonts, frame, corners, dark backgrounds).
   useTheme(state.theme, Boolean(state.emergency) || visibleEndNotice(state.endNotice, now) !== null);
 
@@ -59,7 +76,7 @@ function Screen() {
   }, [Boolean(emergency)]);
   // The read-out of the emergency itself is heard over the alarm: the alarm steps back while it speaks.
   useEffect(() => {
-    onUrgentSound((speaking) => alarm.current.duck(speaking));
+    onUrgentSound((speaking) => duckFor("urgent", speaking));
     return () => onUrgentSound(() => undefined);
   }, []);
   useEffect(() => {

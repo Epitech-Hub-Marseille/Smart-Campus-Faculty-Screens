@@ -135,6 +135,10 @@ export class Controller {
       this.report();
       return;
     }
+    // A live announcement goes straight to the page: never stored, never acknowledged, and one that is missed is simply missed.
+    if (message.type === "live.start") return this.deps.publish({ type: "live", event: "start", streamId: message.payload.streamId, from: message.payload.from });
+    if (message.type === "live.chunk") return this.deps.publish({ type: "live", event: "chunk", streamId: message.payload.streamId, data: message.payload.data });
+    if (message.type === "live.end") return this.deps.publish({ type: "live", event: "end", streamId: message.payload.streamId });
     // Answers to device messages: this device sends none of those, so nothing to do.
     if (!isCommandType(message.type)) return;
 

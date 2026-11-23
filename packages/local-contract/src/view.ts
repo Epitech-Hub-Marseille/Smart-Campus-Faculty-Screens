@@ -184,7 +184,11 @@ export type LiveMessage =
   | { type: "state"; state: ViewState }
   /** A sound to play now (an InterCom broadcast or an emergency read-out), already downloaded and verified. */
   /** `urgent`: an emergency read-out, heard through the silence of an alarm while the alarm itself steps back. */
-  | { type: "audio"; id: string; src: string; volume: number; urgent?: boolean };
+  | { type: "audio"; id: string; src: string; volume: number; urgent?: boolean }
+  /** Someone speaking live (a microphone announcement). The voice is 16 kHz 16-bit mono PCM, `data` in base64, in order. */
+  | { type: "live"; event: "start"; streamId: string; from: string }
+  | { type: "live"; event: "chunk"; streamId: string; data: string }
+  | { type: "live"; event: "end"; streamId: string };
 
 export const emptyViewState = (): ViewState => ({
   phase: "starting",

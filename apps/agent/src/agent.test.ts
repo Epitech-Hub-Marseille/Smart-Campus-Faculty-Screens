@@ -323,6 +323,23 @@ describe("audio", () => {
     expect(a.published.filter((m) => m.type === "audio")).toEqual([{ type: "audio", id: "n1", src: "/audio/SOUND1.wav", volume: 30 }]);
   });
 
+  it("hands a live announcement to the page as it comes, even in quiet hours, and acknowledges nothing", async () => {
+    gateway.desired = { audioSettings: { volume: 30, quietHours: { enabled: true, from: "00:00", to: "23:59" } } };
+    const a = agent({ serve: () => wav });
+    await until(() => a.controller.view().online);
+    const streamId = "01HZZZZZZZZZZZZZZZZZZZZZZZ";
+    gateway.send("live.start", { streamId, sampleRate: 16000, from: "Olga" });
+    gateway.send("live.chunk", { streamId, data: "AAAA" });
+    gateway.send("live.end", { streamId });
+    await until(() => a.published.filter((m) => m.type === "live").length === 3);
+    expect(a.published.filter((m) => m.type === "live")).toEqual([
+      { type: "live", event: "start", streamId, from: "Olga" },
+      { type: "live", event: "chunk", streamId, data: "AAAA" },
+      { type: "live", event: "end", streamId },
+    ]);
+    expect(a.fetches).toHaveLength(0);
+  });
+
   it("stays silent in quiet hours but acknowledges, unless the sound is urgent", async () => {
     gateway.desired = { audioSettings: { volume: 30, quietHours: { enabled: true, from: "00:00", to: "23:59" } } };
     const a = agent({ serve: () => wav });
