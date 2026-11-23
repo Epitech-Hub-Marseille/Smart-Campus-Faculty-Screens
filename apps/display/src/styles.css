@@ -339,9 +339,10 @@ td.room-for {
   min-height: 0;
 }
 
+/* Sized by their content, not from a basis of 0 or a percentage of the list: the card is an auto-height grid row, so those
+   collapsed a lone announcement to its title and hid the description. */
 .announcement {
-  flex: 1 1 0;
-  max-height: 50%;
+  flex: 1 1 auto;
   position: relative;
   display: flex;
   flex-direction: column;
