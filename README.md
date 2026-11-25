@@ -152,3 +152,9 @@ failed downloads and hash mismatches. The page and the pure logic are tested wit
 - **Rooms with no booking** are not on the board ("Free" in the reference): the protocol carries bookings, not the list of rooms.
 - **No event concept** beyond room reservations: the "current events" panel lists today's bookings.
 - Provisioning by QR code is not read by this screen; the key is set in `.env`.
+
+## License
+
+Released under the [PolyForm Noncommercial License 1.0.0](LICENSE). You may use, modify and share the
+software for any noncommercial purpose; commercial use, including selling it, is not permitted.
+This is a source-available license, not an open-source one.
