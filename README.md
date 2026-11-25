@@ -123,6 +123,13 @@ page), a live stream or radio as media (HLS is played by a bundled player), an M
 local. Sound plays unless the tile is muted; the kiosk starts Chromium with the autoplay policy that allows it, and the server allows one
 tile with sound per scene. A stream that fails is retried every 15 seconds and says so, so a camera that is down does not freeze the carousel.
 
+### Live announcements
+
+`live.start`, `live.chunk` and `live.end` (a microphone announcement, 16 kHz mono 16-bit PCM in base64) are not commands: the agent never stores or acknowledges them, it
+hands them to the page as `{type:"live"}` and the page plays them as they arrive (`apps/display/src/lib/liveVoice.ts`: each slice is queued to begin where the last one
+ends, behind a 180 ms cushion). They are heard in quiet hours and during an emergency, and an alarm steps back while someone speaks. A browser that has not been touched keeps
+the audio suspended: the page shows the blocked-sound notice and plays at the first touch (the kiosk flag `--autoplay-policy=no-user-gesture-required` avoids it).
+
 ## Develop
 
 ```sh

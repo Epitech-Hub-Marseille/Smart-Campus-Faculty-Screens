@@ -1,4 +1,4 @@
 Vendored from SmartCampus-CentralServer
-commit: bd8c014
+commit: 1738507 (with uncommitted changes)
 fd4b70766997fd485328940283628a54f99fcf28605e83bb08febc7b43e2be85  smartcampus-handshake-0.1.0.tgz
-0e6048a67b04b7d91e04109f5a9a1e0145e9f9fc04f16144f66ed8e83b9cc6c5  smartcampus-protocol-0.1.0.tgz
+64c0c1b2ec05b9c15cb4cd912fd631c4160c29a6cf105535f4639b932bc1f093  smartcampus-protocol-0.1.0.tgz

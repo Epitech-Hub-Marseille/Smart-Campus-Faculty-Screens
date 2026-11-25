@@ -7,11 +7,13 @@ const RECONNECT_MS = 1_000;
  * The state the local agent pushes over `ws://localhost/live`. The page only listens: it never sends anything, holds
  * no key and does not know the server's address. When the agent restarts the last state stays on screen.
  */
-export function useLive(onAudio: (m: Extract<LiveMessage, { type: "audio" }>) => void): { state: ViewState; connected: boolean } {
+export function useLive(onAudio: (m: Extract<LiveMessage, { type: "audio" }>) => void, onLive: (m: Extract<LiveMessage, { type: "live" }>) => void = () => undefined): { state: ViewState; connected: boolean } {
   const [state, setState] = useState<ViewState>(emptyViewState);
   const [connected, setConnected] = useState(false);
   const audio = useRef(onAudio);
   audio.current = onAudio;
+  const live = useRef(onLive);
+  live.current = onLive;
 
   useEffect(() => {
     let socket: WebSocket | null = null;
@@ -27,6 +29,7 @@ export function useLive(onAudio: (m: Extract<LiveMessage, { type: "audio" }>) =>
           const message = JSON.parse(String(event.data)) as LiveMessage;
           if (message.type === "state") setState(message.state);
           else if (message.type === "audio") audio.current(message);
+          else if (message.type === "live") live.current(message);
         } catch {
           // a message that does not parse is ignored: the page keeps what it has
         }
